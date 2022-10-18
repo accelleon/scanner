@@ -1,6 +1,20 @@
 <script lang="ts">
     import Dropdown from "./controls/Dropdown.svelte";
     import { Tabs, TabList, TabPanel, Tab } from "./controls/tabs/tabs.js";
+    import { invoke } from '@tauri-apps/api/tauri';
+
+
+    export let miners: any = undefined;
+
+    async function scan() {
+        return await invoke("scan_miners", {location: 'C20-1'});
+    }
+
+    async function scanMiners() {
+        miners = await scan();
+        console.log(miners);
+        miners = miners;
+    }
 
     let options = [
         {label: "Can 1", value: "option1"},
@@ -13,15 +27,19 @@
 <div class="container">
     <div class="col">
         <Dropdown bind:selected={selected} options={options} selObject={true} class="dropdown"/>
-        <button>Scan</button>
+        <button on:click="{scanMiners}">Scan</button>
     </div>
     <div class="divider"/>
     <Tabs>
         <TabList>
-            <Tab>Pools</Tab>
             <Tab>Controls</Tab>
+            <Tab>Pools</Tab>
             <Tab>Tab 3</Tab>
         </TabList>
+        <TabPanel>
+            <button>Start Locating</button>
+            <button>Locate Selected</button>
+        </TabPanel>
         <TabPanel>
             <div class="pool">
                 <label>
@@ -71,10 +89,6 @@
             </div>
         </TabPanel>
         <TabPanel>
-            <h2>Tab 2</h2>
-            <p>Tab 2 content</p>
-        </TabPanel>
-        <TabPanel>
             <h2>Tab 3</h2>
             <p>Tab 3 content</p>
         </TabPanel>
@@ -88,15 +102,22 @@
     }
 
     .divider {
-        border-left: 2px solid black;
-        height: 95%;
+        border-left: 2px solid grey;
+        height: 200px;
         margin: 0 20px;
     }
 
     .container {
-        display: flex;
-        flex-direction: row;
-        align-items: left;
+        display: grid;
+        grid-template-columns: 0.05fr 0.05fr auto;
+        grid-template-rows: auto;
+        margin-top: 0;
+        margin-left: 10px;
+        margin-right: 10px;
+        margin-bottom: 0;
+        padding: 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid grey;
         justify-content: left;
     }
 

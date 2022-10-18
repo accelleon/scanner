@@ -2,26 +2,33 @@
   import type { Rack } from "../types";
   import Miner from "./Miner.svelte";
   export let rack: Rack = undefined;
-  let ncols = rack.width;
+  export let selection: any[] = undefined;
+  let ncols = rack.miners[0].length;
 </script>
 
-<div>
+<div class="container">
     {rack.name}
     <div class="grid" style="--ncols: {ncols}">
         {#each rack.miners as row}
             {#each row as miner}
-                <Miner {miner} />
+                <Miner bind:group={selection} {miner} />
             {/each}
         {/each}
     </div>
 </div>
 
 <style>
+    .container {
+        padding: 0;
+        border: 1px solid black;
+        max-width: min-content;
+    }
     .grid {
         display: grid;
         grid-template-columns: repeat(var(--ncols), 1fr);
         grid-gap: 10px;
-        background-color: #2196F3;
+        background-color: #212ff3;
         padding: 10px;
+        height: min-content;
     }
 </style>
