@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { Miner } from "../types";
   import Check from 'svelte-material-icons/Check.svelte';
-  import { event } from "@tauri-apps/api";
-  import { join } from "@tauri-apps/api/path";
+  import { open } from '@tauri-apps/api/shell';
 
   export let miner: Miner = undefined;
   export let disabled: Boolean = false;
@@ -66,8 +65,29 @@
     }
   }
 
+  function onClick(event) {
+    if (disabled) {
+      return;
+    }
+    if (event.ctrlKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (group) {
+        updateGroup(!selected, miner);
+      }
+    } else {
+      group = [miner];
+    }
+  }
+
+  function onDblClick(event) {
+    if (disabled) {
+      return;
+    }
+    open("http://" + miner.ip);
+  }
+
   $: group && updateCheckbox(group, miner);
-  $: group && updateGroup(selected, miner);
   $: color = miner.make ? (miner.hashrate > 0 ? "green" : "red") : "gray";
 </script>
 
@@ -76,7 +96,8 @@
 <div
   class="miner"
   style="--bgcolor: {color}"
-  on:click={() => (selected = !selected)}
+  on:click|preventDefault|stopPropagation={onClick}
+  on:dblclick|preventDefault|stopPropagation={onDblClick}
   on:mouseover={mouseOver}
   on:mouseleave={mouseLeave}
   on:mousemove={mouseMove}
