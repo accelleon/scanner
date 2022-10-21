@@ -100,12 +100,6 @@ async fn import_frontier_locations(layout: String, sitemap: String, db: State<'_
     Ok(())
 }
 
-/// Import Frontier Sitemap export
-#[tauri::command]
-async fn import_frontier_sitemap(export: String) -> String {
-    unimplemented!("Import Frontier Sitemap export");
-}
-
 async fn scan_miner(client: Client, ip: String) -> Miner {
     let mut ret = Miner {
         ip: ip.to_string(),
@@ -174,51 +168,6 @@ async fn scan_miners_async(can: i64, client: State<'_, Client>, db: State<'_, Sq
     Ok(())
 }
 
-#[tauri::command]
-async fn scan_miners(can: i64, db: State<'_, SqlitePool>) -> Result<Vec<Rack>, String> {
-    let mut can = db::DbCan::get(&db, can).await.map_err(|e| e.to_string())?;
-    can.load_racks(&db).await.map_err(|e| e.to_string())?;
-
-    let client = ClientBuilder::new()
-        .build().map_err(|e| e.to_string())?;
-    // Collect all ips into a list
-    let mut ips = Vec::new();
-    for rack in &can.racks {
-        for row in &rack.miners {
-            for miner in row {
-                ips.push(miner.ip.clone());
-            }
-        }
-    }
-    // Scan all ips
-    let mut futures = ips.iter().map(|ip| {
-        tokio::spawn(scan_miner(client.clone(), ip.clone()))
-    });
-    // Collect all results into a map[ip] = Miner
-    let mut results: HashMap<String, Miner> = HashMap::new();
-    for future in futures {
-        let miner = future.await.map_err(|e| e.to_string())?;
-        results.insert(miner.ip.clone(), miner);
-    }
-    // Update all racks with the results
-    Ok(can.racks.iter().map(|rack| {
-        let mut res = Rack {
-            name: rack.name.clone(),
-            width: rack.width,
-            height: rack.height,
-            miners: vec![]
-        };
-        for row in &rack.miners {
-            let mut row_res = Vec::new();
-            for miner in row {
-                row_res.push(results.remove(&miner.ip).unwrap());
-            }
-            res.miners.push(row_res);
-        }
-        res
-    }).collect())
-}
-
 async fn main_async() {
     // Set up tracing subscriber
     tracing_subscriber::fmt::init();
@@ -234,7 +183,6 @@ async fn main_async() {
         .invoke_handler(tauri::generate_handler![
             get_cans,
             gen_empty_can,
-            scan_miners,
             scan_miners_async,
             import_frontier_locations
             ])
