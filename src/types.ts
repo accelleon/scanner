@@ -3,6 +3,11 @@ export type Miner = {
     make?: string;
     model?: string;
     hashrate?: number;
+    temp?: number;
+    fan?: number[];
+    uptime?: number;
+    mac?: string;
+    errors?: string[];
 };
 
 export type Rack = {

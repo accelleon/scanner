@@ -29,6 +29,5 @@
         grid-gap: 10px;
         background-color: #212ff3;
         padding: 10px;
-        height: min-content;
     }
 </style>

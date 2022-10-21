@@ -3,8 +3,31 @@
     import type { Rack as TRack} from "../types";
     export let miners: TRack[] = undefined;
     export let selection: any[] = undefined;
+
+    let detected;
+    let hashing;
+
+    $: {
+        if (miners) {
+            detected = 0;
+            hashing = 0;
+            miners.forEach((rack: TRack) => {
+                rack.miners.forEach((row: any) => {
+                    row.forEach((miner: any) => {
+                        if (miner.make) {
+                            detected++;
+                        }
+                        if (miner.hashrate) {
+                            hashing++;
+                        }
+                    });
+                });
+            });
+        }
+    }
 </script>
 
+{hashing} Hashing / {detected} Detected
 <div class="grid" style="--nracks: {miners.length}">
     {#each miners as rack}
         <Rack bind:selection = {selection} {rack} />
@@ -18,6 +41,5 @@
         grid-gap: 10px;
         padding: 10px;
         margin: 0;
-        height: 10vh;
     }
 </style>

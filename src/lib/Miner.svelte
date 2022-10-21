@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Miner } from "../types";
   import Check from 'svelte-material-icons/Check.svelte';
+  import { event } from "@tauri-apps/api";
+  import { join } from "@tauri-apps/api/path";
 
   export let miner: Miner = undefined;
   export let disabled: Boolean = false;
@@ -12,19 +14,33 @@
   let selected = false;
 
   let color = "gray";
-  if (miner.make) {
-    color = miner.hashrate > 0 ? "green" : "red";
+
+  function locate(ex: number, ey: number) {
+    var tooltip = document.querySelectorAll(".tooltip")[0];
+    if (tooltip) {
+      var rect = tooltip.getBoundingClientRect();
+      // Align the tooltip left of the mouse if it would go off the right side of the screen
+      if((ex + 5 + rect.width) > window.innerWidth) {
+        x = ex - rect.width - 5;
+      } else {
+        x = ex + 5;
+      }
+      y = ey + 5;
+    }
+  }
+
+  function round(number, precision) {
+    var factor = Math.pow(10, precision);
+    return Math.round(number * factor) / factor;
   }
 
   function mouseOver(event) {
     isHovered = true;
-    x = event.pageX + 5;
-    y = event.pageY + 5;
+    locate(event.pageX, event.pageY);
   }
 
   function mouseMove(event) {
-    x = event.pageX + 5;
-    y = event.pageY + 5;
+    locate(event.pageX, event.pageY);
   }
 
   function mouseLeave(event) {
@@ -52,6 +68,7 @@
 
   $: group && updateCheckbox(group, miner);
   $: group && updateGroup(selected, miner);
+  $: color = miner.make ? (miner.hashrate > 0 ? "green" : "red") : "gray";
 </script>
 
 <!-- svelte-ignore a11y-mouse-events-have-key-events -->
@@ -73,38 +90,43 @@
 </div>
 
 {#if isHovered}
+  <div class="tooltip" id="minertip" style="left: {x}px; top: {y}px">
   {#if miner.make}
-    <div class="tooltip" style="left: {x}px; top: {y}px">
-      <div class="tooltip-header">
-        <div class="tooltip-title">{miner.make}</div>
-        <div class="tooltip-subtitle">{miner.model}</div>
+    <div class="tooltip-header">
+      <div class="tooltip-title">{miner.ip}</div>
+      <div class="tooltip-subtitle">{miner.make + " " + miner.model}</div>
+    </div>
+    <div class="tooltip-body">
+      <div class="tooltip-row">
+        <div class="tooltip-label">MAC</div>
+        <div class="tooltip-value">{miner.mac}</div>
       </div>
-      <div class="tooltip-body">
-        <div class="tooltip-row">
-          <div class="tooltip-label">Hashrate</div>
-          <div class="tooltip-value">{miner.hashrate} TH/s</div>
-        </div>
-        <div class="tooltip-row">
-          <div class="tooltip-label">Temp</div>
-          <div class="tooltip-value">{miner.temp} °C</div>
-        </div>
-        <div class="tooltip-row">
-          <div class="tooltip-label">Fan</div>
-          <div class="tooltip-value">{miner.fan} RPM</div>
-        </div>
-        <div class="tooltip-row">
-          <div class="tooltip-label">Power</div>
-          <div class="tooltip-value">{miner.power} W</div>
-        </div>
+      <div class="tooltip-row">
+        <div class="tooltip-label">Hashrate</div>
+        <div class="tooltip-value">{round(miner.hashrate, 2)} TH/s</div>
+      </div>
+      <div class="tooltip-row">
+        <div class="tooltip-label">Temp</div>
+        <div class="tooltip-value">{round(miner.temp, 2)} °C</div>
+      </div>
+      <div class="tooltip-row">
+        <div class="tooltip-label">Fans</div>
+        <div class="tooltip-value">{miner.fan ? miner.fan.join(",") : "Unknown"}</div>
       </div>
     </div>
-  {:else}
-    <div class="tooltip" style="left: {x}px; top: {y}px">
-      <div class="tooltip-header">
-        <div class="tooltip-title">No Miner</div>
+    {#if miner.errors}
+      <div class="tooltip-footer">
+        {#each miner.errors as err}
+          <div class="tooltip-error">{err}</div>
+        {/each}
       </div>
+    {/if}
+  {:else}
+    <div class="tooltip-header">
+      <div class="tooltip-title">No Miner</div>
     </div>
   {/if}
+  </div>
 {/if}
 
 <style>

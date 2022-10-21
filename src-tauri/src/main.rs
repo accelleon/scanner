@@ -3,81 +3,101 @@
     windows_subsystem = "windows"
 )]
 
+use db::DbCan;
 use serde::Serialize;
 use libminer::{ClientBuilder, Client};
+use tokio::task::futures;
+use std::sync::{Mutex, Arc};
+use std::collections::HashMap;
+use sqlx::sqlite::SqlitePool;
+use tauri::{State, Manager};
+use anyhow::Result;
+
 mod db;
+mod frontier;
 
-struct IRack {
-    ips: Vec<Vec<&'static str>>,
-}
-
+#[derive(Serialize)]
 struct Can {
-    racks: Vec<IRack>,
+    id: i64,
+    name: String,
 }
 
-fn get_can() -> Can {
-    Can {
-        racks: vec![
-            IRack {
-                ips: vec![
-                    vec![
-                        "10.20.0.1",
-                        "10.20.0.2",
-                        "10.20.0.3",
-                        "10.20.0.4",
-                    ],
-                    vec![
-                        "10.20.0.5",
-                        "10.20.0.6",
-                        "10.20.0.7",
-                        "10.20.0.8",
-                    ],
-                    vec![
-                        "10.20.0.9",
-                        "10.20.0.10",
-                        "10.20.0.11",
-                        "10.20.0.12",
-                    ],
-                    vec![
-                        "10.20.0.13",
-                        "10.20.0.14",
-                        "10.20.0.15",
-                        "10.20.0.16",
-                    ],
-                    vec![
-                        "10.20.0.17",
-                        "10.20.0.18",
-                        "10.20.0.19",
-                        "10.20.0.20",
-                    ],
-                    vec![
-                        "10.20.0.21",
-                        "10.20.0.22",
-                        "10.20.0.23",
-                        "10.20.0.24",
-                    ],
-                ],
-            },
-        ]
+impl From<DbCan> for Can {
+    fn from(can: DbCan) -> Self {
+        Self {
+            id: can.id,
+            name: can.name,
+        }
     }
 }
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+#[derive(Serialize, Debug, Clone)]
+struct Miner {
+    ip: String,
+    make: Option<String>,
+    model: Option<String>,
+    mac: Option<String>,
+    hashrate: Option<f64>,
+    temp: Option<f64>,
+    fan: Option<Vec<u32>>,
+    uptime: Option<f64>,
+    errors: Vec<String>,
 }
 
-/// Import Brightly export
+#[derive(Serialize, Debug)]
+struct Rack {
+    name: String,
+    width: i64,
+    height: i64,
+    miners: Vec<Vec<Miner>>,
+}
+
+#[derive(Serialize, Debug, Clone)]
+struct MinerEvent {
+    rack: i64,
+    row: i64,
+    index: i64,
+    miner: Miner,
+}
+
+#[derive(Serialize, Debug, Clone)]
+struct Progress {
+    value: f64,
+    max: usize,
+    done: usize,
+    job: String,
+}
+
+async fn update_progress(job: String, done: usize, max: usize, app: tauri::AppHandle) -> Result<()> {
+    let progress = Progress {
+        value: done as f64 / max as f64,
+        max,
+        done,
+        job,
+    };
+    Ok(app.emit_all("progress", progress)?)
+}
+
 #[tauri::command]
-async fn import_brightly(export: String) -> String {
-    unimplemented!("Import Brightly export");
+async fn get_cans(db: State<'_, SqlitePool>) -> Result<Vec<Can>, String> {
+    let cans = db::DbCan::all(&db).await.map_err(|e| e.to_string())?;
+    Ok(cans.into_iter().map(|can| can.into()).collect())
+}
+
+#[tauri::command]
+async fn gen_empty_can(can: i64, db: State<'_, SqlitePool>) -> Result<DbCan, String> {
+    let mut can = db::DbCan::get(&db, can).await.map_err(|e| e.to_string())?;
+    can.load_racks(&db).await.map_err(|e| e.to_string())?;
+    Ok(can)
 }
 
 /// Import Frontier Locations export
 #[tauri::command]
-async fn import_frontier_locations(export: String) -> String {
-    unimplemented!("Import Frontier Locations export");
+async fn import_frontier_locations(layout: String, sitemap: String, db: State<'_, SqlitePool>) -> Result<(), ()> {
+    if let Err(e) = frontier::import_sitemap(&db, layout, sitemap).await {
+        tracing::error!("Error importing sitemap: {}", e);
+    }
+    Ok(())
 }
 
 /// Import Frontier Sitemap export
@@ -86,85 +106,149 @@ async fn import_frontier_sitemap(export: String) -> String {
     unimplemented!("Import Frontier Sitemap export");
 }
 
-#[derive(Serialize, Debug)]
-struct Miner {
-    ip: String,
-    make: Option<String>,
-    model: Option<String>,
-    hashrate: Option<f64>,
+async fn scan_miner(client: Client, ip: String) -> Miner {
+    let mut ret = Miner {
+        ip: ip.to_string(),
+        make: None,
+        model: None,
+        hashrate: None,
+        temp: None,
+        fan: None,
+        uptime: None,
+        mac: None,
+        errors: vec![],
+    };
+    if let Ok(mut miner) = client.get_miner(&ip, None).await {
+        ret.make = Some(miner.get_type().to_string());
+        if let Err(_) = miner.auth("admin", "admin").await {
+            miner.auth("root", "root").await;
+        }
+        ret.model = Some(miner.get_model().await.unwrap_or("Unknown".to_string()));
+        ret.hashrate = Some(miner.get_hashrate().await.unwrap_or(0.0));
+        ret.temp = miner.get_temperature().await.ok();
+        ret.fan = miner.get_fan_speed().await.ok();
+        ret.mac = Some(miner.get_mac().await.unwrap_or("Unknown".to_string()));
+        if ret.hashrate == Some(0.0) {
+            ret.errors = miner.get_errors().await.unwrap_or(vec![]);
+        }
+    }
+    ret
 }
 
-#[derive(Serialize, Debug)]
-struct Rack {
-    name: String,
-    miners: Vec<Vec<Miner>>,
+async fn scan_emit(rack: i64, row: i64, index: i64, ip: String, client: Client, app: tauri::AppHandle) {
+    let miner = scan_miner(client.clone(), ip).await;
+    app.emit_all("miner", MinerEvent {
+        rack,
+        row,
+        index,
+        miner,
+    });
 }
 
 #[tauri::command]
-async fn scan_miners(location: String) -> Vec<Rack> {
-    // C24-1
-    //let racks = locations[location].racks;
-    //for rack in racks: {
-        // let miners = vec![];
-        // for i, ip in enumerate(rack) {
-            // let row = vec![];
-            // for j, ip in enumerate(ip) {
-                // let miner = Miner {
-                    // ip: ip,
-                    // make: None,
-                    // model: None,
-                    // hashrate: None,
-                // };
-                // row.push(miner);
-            // }
-        //}
-    //}
+async fn scan_miners_async(can: i64, client: State<'_, Client>, db: State<'_, SqlitePool>, app: tauri::AppHandle) -> Result<(), String> {
+    let mut can = db::DbCan::get(&db, can).await.map_err(|e| e.to_string())?;
+    can.load_racks(&db).await.map_err(|e| e.to_string())?;
 
     let client = ClientBuilder::new()
-        .build()
-        .unwrap();
-
-    let mut miners = vec![];
-
-    for rack in get_can().racks {
-        let mut miner_rack = Rack {
-            name: "C24-1".to_string(),
-            miners: vec![],
-        };
-        for row in rack.ips {
-            let mut miner_row = vec![];
-            for ip in row {
-                let miner = client.get_miner(&ip, None).await;
-                if let Ok(mut miner) = miner {
-                    if let Err(_) = miner.auth("admin", "admin").await {
-                        miner.auth("root", "root").await;
-                    }
-                    miner_row.push(Miner {
-                        ip: ip.to_string(),
-                        make: Some(miner.get_type().to_string()),
-                        model: Some(miner.get_model().await.unwrap_or("Unknown".to_string())),
-                        hashrate: Some(miner.get_hashrate().await.unwrap_or(0.0)),
-                    });
-                } else {
-                    miner_row.push(Miner {
-                        ip: ip.to_string(),
-                        make: None,
-                        model: None,
-                        hashrate: None,
-                    });
-                }
+        .build().map_err(|e| e.to_string())?;
+    // Collect all ips into a list
+    let mut futures = Vec::new();
+    for rack in &can.racks {
+        for row in &rack.miners {
+            for miner in row {
+                futures.push(
+                    tokio::spawn(scan_emit(rack.index, miner.row, miner.index, miner.ip.clone(), client.clone(), app.clone()))
+                )
             }
-            miner_rack.miners.push(miner_row);
         }
-        miners.push(miner_rack);
     }
-    
-    miners
+    let mut done: usize = 0;
+    let max = futures.len();
+    update_progress("Scanning".to_string(), done, max, app.clone()).await;
+    for future in futures {
+        future.await;
+        done += 1;
+        update_progress("Scanning...".to_string(), done, max, app.clone()).await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn scan_miners(can: i64, db: State<'_, SqlitePool>) -> Result<Vec<Rack>, String> {
+    let mut can = db::DbCan::get(&db, can).await.map_err(|e| e.to_string())?;
+    can.load_racks(&db).await.map_err(|e| e.to_string())?;
+
+    let client = ClientBuilder::new()
+        .build().map_err(|e| e.to_string())?;
+    // Collect all ips into a list
+    let mut ips = Vec::new();
+    for rack in &can.racks {
+        for row in &rack.miners {
+            for miner in row {
+                ips.push(miner.ip.clone());
+            }
+        }
+    }
+    // Scan all ips
+    let mut futures = ips.iter().map(|ip| {
+        tokio::spawn(scan_miner(client.clone(), ip.clone()))
+    });
+    // Collect all results into a map[ip] = Miner
+    let mut results: HashMap<String, Miner> = HashMap::new();
+    for future in futures {
+        let miner = future.await.map_err(|e| e.to_string())?;
+        results.insert(miner.ip.clone(), miner);
+    }
+    // Update all racks with the results
+    Ok(can.racks.iter().map(|rack| {
+        let mut res = Rack {
+            name: rack.name.clone(),
+            width: rack.width,
+            height: rack.height,
+            miners: vec![]
+        };
+        for row in &rack.miners {
+            let mut row_res = Vec::new();
+            for miner in row {
+                row_res.push(results.remove(&miner.ip).unwrap());
+            }
+            res.miners.push(row_res);
+        }
+        res
+    }).collect())
+}
+
+async fn main_async() {
+    // Set up tracing subscriber
+    tracing_subscriber::fmt::init();
+
+    let client = ClientBuilder::new()
+        .build().unwrap();
+
+    let db = db::connect().await.unwrap();
+    tauri::async_runtime::set(tokio::runtime::Handle::current());
+    tauri::Builder::default()
+        .manage(client)
+        .manage(db)
+        .invoke_handler(tauri::generate_handler![
+            get_cans,
+            gen_empty_can,
+            scan_miners,
+            scan_miners_async,
+            import_frontier_locations
+            ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }
 
 fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![scan_miners])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(8)
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            main_async().await;
+        });
 }

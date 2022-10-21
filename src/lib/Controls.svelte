@@ -1,33 +1,66 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import Dropdown from "./controls/Dropdown.svelte";
     import { Tabs, TabList, TabPanel, Tab } from "./controls/tabs/tabs.js";
     import { invoke } from '@tauri-apps/api/tauri';
-
+    import FrontierDialog from "./controls/FrontierDialog.svelte";
+    import { modal } from '../stores.js';
+    import { bind } from './controls/Modal.svelte';
+    import { listen } from '@tauri-apps/api/event';
 
     export let miners: any = undefined;
+    let cans = [];
+    let selected;
+    let scanned;
+    let scanning = false;
+    let disabled = false;
+    let progress;
+
+    onMount(async () => {
+        cans = await invoke('get_cans');
+        let unlisten = listen('progress', (e: any) => {
+            progress = e.payload;
+        });
+    });
 
     async function scan() {
-        return await invoke("scan_miners", {location: 'C20-1'});
+        let res = await invoke("scan_miners_async", {can: selected.id});
+        return res;
     }
 
     async function scanMiners() {
-        miners = await scan();
-        console.log(miners);
-        miners = miners;
+        scanning = true;
+        scanned = selected;
+        await invoke('gen_empty_can', {can: selected.id}).then((resp: any) => {
+            miners = resp.racks;
+            scan().then(() => {
+                scanning = false;
+            });
+        });
     }
 
-    let options = [
-        {label: "Can 1", value: "option1"},
-    ]
-    let selected;
+    const onOkay = (layout: String, sitemap: String) => {
+        invoke("import_frontier_locations", {layout: layout, sitemap: sitemap});
+    }
 
-    $: console.log(selected);
+    async function importMap() {
+        modal.set(bind(FrontierDialog, {onOkay}));
+    }
+
+    $: if (selected != scanned) { scanned = false; invoke('gen_empty_can', {can: selected.id}).then((resp: any) => { miners = resp.racks; }); }
+    $: disabled = scanning || !selected;
 </script>
 
+{#if progress}
+    <progress class="progress" value={progress.value}>
+        {progress.job}... {progress.done} / {progress.max}
+    </progress>
+{/if}
 <div class="container">
     <div class="col">
-        <Dropdown bind:selected={selected} options={options} selObject={true} class="dropdown"/>
-        <button on:click="{scanMiners}">Scan</button>
+        <Dropdown bind:selected={selected} options={cans} selObject={true} labelfn={(e) => e.name} class="dropdown"/>
+        <button on:click="{scanMiners}" disabled={disabled}>Scan</button>
+        <button on:click="{importMap}">Import Map</button>
     </div>
     <div class="divider"/>
     <Tabs>
@@ -107,6 +140,10 @@
         margin: 0 20px;
     }
 
+    .progress {
+        width: 100%;
+    }
+
     .container {
         display: grid;
         grid-template-columns: 0.05fr 0.05fr auto;
@@ -129,5 +166,13 @@
     .pool {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+
+    button[disabled]:active, button[disabled],
+    button[disabled]:hover {
+        background-color: grey;
+        color: darkgrey;
+        cursor:not-allowed !important;
+        pointer-events: none;
     }
 </style>
