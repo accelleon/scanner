@@ -150,8 +150,8 @@ async fn scan_miners_async(can: i64, client: State<'_, Client>, db: State<'_, Sq
     let mut can = db::DbCan::get(&db, can).await.map_err(|e| e.to_string())?;
     can.load_racks(&db).await.map_err(|e| e.to_string())?;
 
-    let client = ClientBuilder::new()
-        .build().map_err(|e| e.to_string())?;
+    let client = &*client;
+
     // Collect all ips into a list
     let mut futures = Vec::new();
     for rack in &can.racks {
