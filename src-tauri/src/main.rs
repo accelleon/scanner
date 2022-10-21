@@ -123,7 +123,13 @@ async fn scan_miner(client: Client, ip: String) -> Miner {
         ret.fan = miner.get_fan_speed().await.ok();
         ret.mac = Some(miner.get_mac().await.unwrap_or("Unknown".to_string()));
         if ret.hashrate == Some(0.0) {
-            ret.errors = miner.get_errors().await.unwrap_or(vec![]);
+            // Try to get errors up to 3 times
+            for _ in 0..3 {
+                if let Ok(errors) = miner.get_errors().await {
+                    ret.errors = errors;
+                    break;
+                }
+            }
         }
     }
     ret
@@ -173,7 +179,10 @@ async fn main_async() {
     tracing_subscriber::fmt::init();
 
     let client = ClientBuilder::new()
-        .build().unwrap();
+        //.connect_timeout(tokio::time::Duration::from_secs(15))
+        //.request_timeout(tokio::time::Duration::from_secs(60))
+        .build()
+        .unwrap();
 
     let db = db::connect().await.unwrap();
     tauri::async_runtime::set(tokio::runtime::Handle::current());
