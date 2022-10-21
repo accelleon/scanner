@@ -27,11 +27,15 @@
     }
 </script>
 
-{hashing} Hashing / {detected} Detected
+<div style="margin: 0; margin-top: 10px;">
+<p style="margin: 0;">
+    {hashing} Hashing / {detected} Detected
+</p>
 <div class="grid" style="--nracks: {miners.length}">
     {#each miners as rack}
         <Rack bind:selection = {selection} {rack} />
     {/each}
+</div>
 </div>
 
 <style>

@@ -22,6 +22,7 @@
         padding: 0;
         border: 1px solid black;
         max-width: min-content;
+        text-align: center;
     }
     .grid {
         display: grid;
