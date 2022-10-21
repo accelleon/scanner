@@ -8,7 +8,7 @@ pub use models::DbRack::DbRack;
 
 pub async fn connect() -> Result<SqlitePool, sqlx::Error> {
     let opts = SqliteConnectOptions::new()
-        .filename("../scanner.db")
+        .filename("./scanner.db")
         .create_if_missing(true);
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
