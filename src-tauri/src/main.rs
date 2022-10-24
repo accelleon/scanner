@@ -134,6 +134,9 @@ async fn scan_miner(client: Client, ip: String) -> Miner {
                 }
             }
         }
+        if ret.pools[0].url.is_empty() {
+            ret.errors.push("No pool set".to_string());
+        }
     }
     ret
 }
