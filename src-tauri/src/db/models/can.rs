@@ -2,7 +2,7 @@ use sqlx::sqlite::SqlitePool;
 use anyhow::Result;
 use serde::Serialize;
 
-use super::DbRack::DbRack;
+use super::rack::DbRack;
 
 #[derive(Serialize, Debug)]
 pub struct DbCan {

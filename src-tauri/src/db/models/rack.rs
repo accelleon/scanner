@@ -3,7 +3,7 @@ use sqlx::sqlite::SqlitePool;
 use anyhow::Result;
 use tokio::{spawn, join};
 
-use super::DbMiner::DbMiner;
+use super::miner::DbMiner;
 
 #[derive(Serialize, Debug)]
 pub struct DbRack {

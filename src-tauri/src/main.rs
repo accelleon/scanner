@@ -5,7 +5,7 @@
 
 use db::DbCan;
 use serde::Serialize;
-use libminer::{ClientBuilder, Client};
+use libminer::{ClientBuilder, Client, Pool};
 use tokio::task::futures;
 use std::sync::{Mutex, Arc};
 use std::collections::HashMap;
@@ -42,6 +42,7 @@ struct Miner {
     fan: Option<Vec<u32>>,
     uptime: Option<f64>,
     errors: Vec<String>,
+    pools: Vec<Pool>,
 }
 
 #[derive(Serialize, Debug)]
@@ -111,6 +112,7 @@ async fn scan_miner(client: Client, ip: String) -> Miner {
         uptime: None,
         mac: None,
         errors: vec![],
+        pools: vec![],
     };
     if let Ok(mut miner) = client.get_miner(&ip, None).await {
         ret.make = Some(miner.get_type().to_string());
@@ -122,6 +124,7 @@ async fn scan_miner(client: Client, ip: String) -> Miner {
         ret.temp = miner.get_temperature().await.ok();
         ret.fan = miner.get_fan_speed().await.ok();
         ret.mac = Some(miner.get_mac().await.unwrap_or("Unknown".to_string()));
+        ret.pools = miner.get_pools().await.unwrap_or(vec![]);
         if ret.hashrate == Some(0.0) {
             // Try to get errors up to 3 times
             for _ in 0..3 {

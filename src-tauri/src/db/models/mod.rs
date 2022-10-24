@@ -1,3 +1,3 @@
-pub mod DbCan;
-pub mod DbMiner;
-pub mod DbRack;
+pub mod can;
+pub mod miner;
+pub mod rack;
