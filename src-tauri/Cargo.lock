@@ -1724,7 +1724,7 @@ dependencies = [
 [[package]]
 name = "libminer"
 version = "0.1.0"
-source = "git+https://github.com/accelleon/libminer?branch=dev#2692c2717e79630af7dc4eee09a78d4f778ab441"
+source = "git+https://github.com/accelleon/libminer?branch=dev#1cafba0fdbfecf9d8112a61ba4bb1a7ec8144fbb"
 dependencies = [
  "async-trait",
  "base64",
