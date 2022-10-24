@@ -1,9 +1,13 @@
 <script lang="ts">
+  import SortAscending from 'svelte-material-icons/SortAscending.svelte';
+  import SortDescending from 'svelte-material-icons/SortDescending.svelte';
+
   type Column = {
     name: string;
     key: string;
     sortFn?: (a: any, b: any) => number;
     dispFn?: (a: any) => string;
+    sortable?: boolean;
   };
 
   export let selection: any[] = undefined;
@@ -16,6 +20,7 @@
   let display = data;
 
   function sortClick(key: string) {
+    if (!columns.find((col) => col.key === key).sortable) return;
     if (sortBy.key === key) {
       sortBy.order = sortBy.order === "asc" ? "desc" : "asc";
     } else {
@@ -30,10 +35,10 @@
       if (!columns.find((col) => col.key === sortBy.key).sortFn) {
         display = data.sort((a, b) => {
           if (a[sortBy.key] < b[sortBy.key]) {
-            return sortBy.order === "asc" ? -1 : 1;
+            return sortBy.order === "desc" ? -1 : 1;
           }
           if (a[sortBy.key] > b[sortBy.key]) {
-            return sortBy.order === "asc" ? 1 : -1;
+            return sortBy.order === "desc" ? 1 : -1;
           }
           return 0;
         });
@@ -44,9 +49,9 @@
               .find((col) => col.key === sortBy.key)
               .sortFn(a[sortBy.key], b[sortBy.key]) > 0
           ) {
-            return sortBy.order === "asc" ? -1 : 1;
+            return sortBy.order === "desc" ? -1 : 1;
           } else {
-            return sortBy.order === "asc" ? 1 : -1;
+            return sortBy.order === "desc" ? 1 : -1;
           }
         });
       }
@@ -61,7 +66,16 @@
     <thead>
       <tr>
         {#each columns as column}
-          <th on:click={() => sortClick(column.key)}>{column.name}</th>
+          <th on:click={() => sortClick(column.key)}>
+            {column.name}
+            {#if sortBy.key === column.key}
+              {#if sortBy.order === "asc"}
+                <SortAscending />
+              {:else}
+                <SortDescending />
+              {/if}
+            {/if}
+          </th>
         {/each}
       </tr>
     </thead>
@@ -74,13 +88,15 @@
               : ""}
           >
             {#each columns as column}
-              <td
-                >{@html row[column.key]
-                  ? column.dispFn
+              <td>
+                {
+                  @html row[column.key]
+                  ? (column.dispFn
                     ? column.dispFn(row[column.key])
-                    : row[column.key]
-                  : ""}</td
-              >
+                    : row[column.key])
+                  : ""
+                }
+              </td>
             {/each}
           </tr>
         {/each}

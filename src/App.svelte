@@ -16,6 +16,7 @@
     {
       name: "IP",
       key: "ip",
+      sortable: true,
       sortFn: (a: any, b: any) => {
         const num1 = Number(
           a
@@ -35,10 +36,12 @@
     {
       name: "Make",
       key: "make",
+      sortable: true,
     },
     {
       name: "Model",
       key: "model",
+      sortable: true,
     },
     {
       name: "MAC Address",
@@ -47,10 +50,12 @@
     {
       name: "Hashrate",
       key: "hashrate",
+      sortable: true,
     },
     {
       name: "Temp",
       key: "temp",
+      sortable: true,
     },
     {
       name: "Fan",
