@@ -69,6 +69,7 @@
       selObject={true}
       labelfn={(e) => e.name}
       class="dropdown"
+      disabled = {scanning}
     />
     <button on:click={scanMiners} {disabled}>Scan</button>
     <button on:click={importMap}>Import Map</button>
