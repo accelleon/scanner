@@ -7,6 +7,7 @@
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import Table from "./lib/controls/Table.svelte";
+  import { round } from "./util";
 
   let selected_miners: Miner[] = [];
   let miners: any = [];
@@ -51,11 +52,13 @@
       name: "Hashrate",
       key: "hashrate",
       sortable: true,
+      dispFn: (hashrate: number) => `${round(hashrate, 2)}`,
     },
     {
       name: "Temp",
       key: "temp",
       sortable: true,
+      dispFn: (temp: number) => `${round(temp, 2)}`,
     },
     {
       name: "Fan",

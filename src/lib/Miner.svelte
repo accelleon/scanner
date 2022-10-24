@@ -2,6 +2,7 @@
   import type { Miner } from "../types";
   import Check from "svelte-material-icons/Check.svelte";
   import { open } from "@tauri-apps/api/shell";
+  import { round } from "../util";
 
   export let miner: Miner = undefined;
   export let disabled: Boolean = false;
@@ -26,11 +27,6 @@
       }
       y = ey + 5;
     }
-  }
-
-  function round(number, precision) {
-    var factor = Math.pow(10, precision);
-    return Math.round(number * factor) / factor;
   }
 
   function mouseOver(event) {
