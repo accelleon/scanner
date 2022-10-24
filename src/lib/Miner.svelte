@@ -208,4 +208,10 @@
   .tooltip-value {
     font-size: 1rem;
   }
+
+  .tooltip-error {
+    font-size: 1rem;
+    color: red;
+    font-weight: bold;
+  }
 </style>
