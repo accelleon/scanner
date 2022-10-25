@@ -85,7 +85,7 @@
   }
 
   $: group && updateCheckbox(group, miner);
-  $: color = miner.make ? (miner.sleep ? "violet" : (miner.hashrate > 0 ? "green" : "red")) : "gray";
+  $: color = miner.make ? (miner.sleep ? "black" : (miner.hashrate > 0 ? "green" : "red")) : "#ddd";
   $: disabled = !miner.make;
 </script>
 
@@ -137,6 +137,11 @@
           {#each miner.errors as err}
             <div class="tooltip-error">{err}</div>
           {/each}
+        </div>
+      {/if}
+      {#if miner.sleep}
+        <div class="tooltip-footer">
+          <div class="tooltip-error">Sleeping</div>
         </div>
       {/if}
     {:else}

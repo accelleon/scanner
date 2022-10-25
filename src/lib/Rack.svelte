@@ -22,13 +22,13 @@
     padding: 0;
     border: 1px solid black;
     max-width: min-content;
+    background-color: #ddd;
     text-align: center;
   }
   .grid {
     display: grid;
     grid-template-columns: repeat(var(--ncols), 1fr);
     grid-gap: 10px;
-    background-color: #212ff3;
     padding: 10px;
   }
 </style>
