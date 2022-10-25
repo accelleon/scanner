@@ -79,7 +79,7 @@ struct Config {
 impl Config {
     fn new() -> Self {
         Self {
-            refreshRate: 15,
+            refreshRate: 30,
             maxConnections: 500,
             connectionTimeout: 10,
             readTimeout: 15,
@@ -90,20 +90,23 @@ impl Config {
         let row = sqlx::query!("SELECT * FROM config")
             .fetch_one(db)
             .await;
-        if let Err(sqlx::Error::RowNotFound) = row {
-            let default = Config::new();
-            sqlx::query!("CREATE TABLE IF NOT EXISTS config (
-                id INTEGER PRIMARY KEY NOT NULL,
-                key TEXT NOT NULL UNIQUE,
-                value TEXT NOT NULL
-            );")
-                .execute(db)
-                .await?;
-            default.save(db).await?;
-            Ok(default)
-        } else {
-            let row = row?;
-            Ok(serde_json::from_str(&row.value)?)
+        match row {
+            Err(sqlx::Error::RowNotFound) | Err(sqlx::Error::Database(_)) => {
+                let default = Config::new();
+                sqlx::query!("CREATE TABLE IF NOT EXISTS config (
+                    id INTEGER PRIMARY KEY NOT NULL,
+                    key TEXT NOT NULL UNIQUE,
+                    value TEXT NOT NULL
+                );")
+                    .execute(db)
+                    .await?;
+                default.save(db).await?;
+                Ok(default)
+            }
+            Ok(row) => {
+                Ok(serde_json::from_str(&row.value)?)
+            }
+            Err(e) => Err(e.into()),
         }
     }
 
