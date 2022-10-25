@@ -4,14 +4,12 @@
 )]
 
 use db::DbCan;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use libminer::{ClientBuilder, Client, Pool};
-use tokio::task::futures;
-use std::sync::{Mutex, Arc};
-use std::collections::HashMap;
 use sqlx::sqlite::SqlitePool;
 use tauri::{State, Manager};
 use anyhow::Result;
+use tokio::sync::Mutex;
 
 mod db;
 mod frontier;
@@ -70,6 +68,56 @@ struct Progress {
     job: String,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+struct Config {
+    refreshRate: u64,
+    maxConnections: usize,
+    connectionTimeout: u64,
+    readTimeout: u64,
+}
+
+impl Config {
+    fn new() -> Self {
+        Self {
+            refreshRate: 15,
+            maxConnections: 500,
+            connectionTimeout: 10,
+            readTimeout: 15,
+        }
+    }
+
+    async fn load(db: &SqlitePool) -> Result<Self> {
+        let row = sqlx::query!("SELECT * FROM config")
+            .fetch_one(db)
+            .await;
+        if let Err(sqlx::Error::RowNotFound) = row {
+            let default = Config::new();
+            sqlx::query!("CREATE TABLE IF NOT EXISTS config (
+                id INTEGER PRIMARY KEY NOT NULL,
+                key TEXT NOT NULL UNIQUE,
+                value TEXT NOT NULL
+            );")
+                .execute(db)
+                .await?;
+            default.save(db).await?;
+            Ok(default)
+        } else {
+            let row = row?;
+            Ok(serde_json::from_str(&row.value)?)
+        }
+    }
+
+    async fn save(&self, db: &SqlitePool) -> Result<()> {
+        let serial = serde_json::to_string(self)?;
+        sqlx::query!("UPDATE config SET value = ? WHERE key = 'json'",
+            serial
+        )
+            .execute(db)
+            .await?;
+        Ok(())
+    }
+}
+
 async fn update_progress(job: String, done: usize, max: usize, app: tauri::AppHandle) -> Result<()> {
     let progress = Progress {
         value: done as f64 / max as f64,
@@ -100,6 +148,25 @@ async fn import_frontier_locations(layout: String, sitemap: String, db: State<'_
         tracing::error!("Error importing sitemap: {}", e);
     }
     Ok(())
+}
+
+#[tauri::command]
+async fn save_settings(settings: Config, client: State<'_, Mutex<Client>>, db: State<'_, SqlitePool>) -> Result<(), String> {
+    settings.save(&db).await.map_err(|e| e.to_string())?;
+    let new_client = ClientBuilder::new()
+        .max_connections(settings.maxConnections)
+        .connect_timeout(tokio::time::Duration::from_secs(settings.connectionTimeout))
+        .request_timeout(tokio::time::Duration::from_secs(settings.readTimeout))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut client = client.lock().await;
+    *client = new_client;
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_settings(db: State<'_, SqlitePool>) -> Result<Config, String> {
+    Config::load(&db).await.map_err(|e| e.to_string())
 }
 
 async fn scan_miner(client: Client, ip: String) -> Miner {
@@ -158,11 +225,11 @@ async fn scan_emit(rack: i64, row: i64, index: i64, ip: String, client: Client, 
 }
 
 #[tauri::command]
-async fn scan_miners_async(can: i64, client: State<'_, Client>, db: State<'_, SqlitePool>, app: tauri::AppHandle) -> Result<(), String> {
+async fn scan_miners_async(can: i64, client: State<'_, Mutex<Client>>, db: State<'_, SqlitePool>, app: tauri::AppHandle) -> Result<(), String> {
     let mut can = db::DbCan::get(&db, can).await.map_err(|e| e.to_string())?;
     can.load_racks(&db).await.map_err(|e| e.to_string())?;
 
-    let client = &*client;
+    let client = client.lock().await.clone();
 
     // Collect all ips into a list
     let mut futures = Vec::new();
@@ -190,22 +257,28 @@ async fn main_async() {
     // Set up tracing subscriber
     tracing_subscriber::fmt::init();
 
+    let db = db::connect().await.unwrap();
+
+    let config = Config::load(&db).await.unwrap();
+
     let client = ClientBuilder::new()
-        //.connect_timeout(tokio::time::Duration::from_secs(15))
-        //.request_timeout(tokio::time::Duration::from_secs(60))
+        .connect_timeout(tokio::time::Duration::from_secs(config.connectionTimeout))
+        .request_timeout(tokio::time::Duration::from_secs(config.readTimeout))
+        .max_connections(config.maxConnections)
         .build()
         .unwrap();
 
-    let db = db::connect().await.unwrap();
     tauri::async_runtime::set(tokio::runtime::Handle::current());
     tauri::Builder::default()
-        .manage(client)
+        .manage(Mutex::new(client))
         .manage(db)
         .invoke_handler(tauri::generate_handler![
             get_cans,
             gen_empty_can,
             scan_miners_async,
-            import_frontier_locations
+            import_frontier_locations,
+            save_settings,
+            get_settings,
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

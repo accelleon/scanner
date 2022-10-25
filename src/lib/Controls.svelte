@@ -3,18 +3,38 @@
   import Dropdown from "./controls/Dropdown.svelte";
   import { Tabs, TabList, TabPanel, Tab } from "./controls/tabs/tabs.js";
   import { invoke } from "@tauri-apps/api/tauri";
-  import FrontierDialog from "./controls/FrontierDialog.svelte";
+  import SettingsDialog from "./controls/SettingsDialog.svelte";
   import { modal } from "../stores.js";
   import { bind } from "./controls/Modal.svelte";
   import { listen } from "@tauri-apps/api/event";
+  import { settings } from "../stores.js";
 
   export let miners: any = undefined;
   let cans = [];
   let selected;
   let scanned;
   let scanning = false;
+  let monitor = false;
   let disabled = false;
+  let disabled2 = false;
   let progress;
+  let monitorInterval;
+
+  var setIntervalSynchronous = function (func, delay) {
+    var intervalFunction, timeoutId, clear;
+    // Call to clear the interval.
+    clear = function () {
+      clearTimeout(timeoutId);
+    };
+    intervalFunction = function () {
+      func().then(() => {
+        timeoutId = setTimeout(intervalFunction, delay);
+      });
+    }
+    intervalFunction();
+    // You should capture the returned function for clearing.
+    return clear;
+  };
 
   onMount(async () => {
     cans = await invoke("get_cans");
@@ -24,27 +44,32 @@
   });
 
   async function scan() {
+    scanning = true;
+    scanned = selected;
     let res = await invoke("scan_miners_async", { can: selected.id });
+    scanning = false;
     return res;
   }
 
   async function scanMiners() {
-    scanning = true;
-    scanned = selected;
     await invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
       miners = resp.racks;
-      scan().then(() => {
-        scanning = false;
-      });
+      scan();
     });
   }
 
-  const onOkay = (layout: String, sitemap: String) => {
-    invoke("import_frontier_locations", { layout: layout, sitemap: sitemap });
-  };
+  async function monitorMiners() {
+    monitor = !monitor;
+    if (monitor) {
+      monitorInterval = setIntervalSynchronous(scan, $settings.refreshRate * 1000);
+    } else {
+      monitorInterval();
+      monitorInterval = null;
+    }
+  }
 
-  async function importMap() {
-    modal.set(bind(FrontierDialog, { onOkay }));
+  async function settingsDialog() {
+    modal.set(bind(SettingsDialog));
   }
 
   $: if (selected != scanned) {
@@ -53,7 +78,8 @@
       miners = resp.racks;
     });
   }
-  $: disabled = scanning || !selected;
+  $: disabled = monitor || scanning || !selected;
+  $: disabled2 = scanning || !selected;
 </script>
 
 {#if progress}
@@ -69,10 +95,11 @@
       selObject={true}
       labelfn={(e) => e.name}
       class="dropdown"
-      disabled = {scanning}
+      disabled = {scanning || monitor}
     />
     <button on:click={scanMiners} {disabled}>Scan</button>
-    <button on:click={importMap}>Import Map</button>
+    <button on:click={monitorMiners} disabled={disabled2}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
+    <button on:click={settingsDialog} disabled={scanning || monitor}>Settings</button>
   </div>
   <div class="divider" />
   <Tabs>
@@ -144,6 +171,7 @@
   * :global(.dropdown) {
     width: 200px;
     height: 3em;
+    margin-bottom: 5px;
   }
 
   .divider {
@@ -173,6 +201,10 @@
   .col {
     display: flex;
     flex-direction: column;
+  }
+
+  .col > * {
+    margin-bottom: 5px;
   }
 
   .pool {

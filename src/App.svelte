@@ -8,6 +8,8 @@
   import { listen } from "@tauri-apps/api/event";
   import Table from "./lib/controls/Table.svelte";
   import { round } from "./util";
+  import { invoke } from "@tauri-apps/api/tauri";
+  import { settings } from "./stores.js";
 
   let selected_miners: Miner[] = [];
   let miners: any = [];
@@ -79,6 +81,10 @@
     let unlisten = listen("miner", (e: any) => {
       let miner = e.payload;
       miners[miner.rack].miners[miner.row][miner.index] = miner.miner;
+    });
+
+    invoke("get_settings").then((res: any) => {
+      settings.set(res);
     });
   });
 

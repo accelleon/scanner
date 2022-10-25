@@ -85,5 +85,17 @@ pub async fn create_tables(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS config (
+            id INTEGER PRIMARY KEY NOT NULL,
+            key TEXT NOT NULL UNIQUE,
+            value TEXT NOT NULL
+        );
+        "#
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }
