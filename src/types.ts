@@ -8,6 +8,7 @@ export type Miner = {
   uptime?: number;
   mac?: string;
   errors?: string[];
+  sleep?: boolean;
 };
 
 export type Rack = {

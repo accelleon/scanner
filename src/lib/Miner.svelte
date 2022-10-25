@@ -85,7 +85,7 @@
   }
 
   $: group && updateCheckbox(group, miner);
-  $: color = miner.make ? (miner.hashrate > 0 ? "green" : "red") : "gray";
+  $: color = miner.make ? (miner.sleep ? "violet" : (miner.hashrate > 0 ? "green" : "red")) : "gray";
   $: disabled = !miner.make;
 </script>
 

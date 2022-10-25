@@ -43,6 +43,7 @@ struct Miner {
     uptime: Option<f64>,
     errors: Vec<String>,
     pools: Vec<Pool>,
+    sleep: bool,
 }
 
 #[derive(Serialize, Debug)]
@@ -113,6 +114,7 @@ async fn scan_miner(client: Client, ip: String) -> Miner {
         mac: None,
         errors: vec![],
         pools: vec![],
+        sleep: false,
     };
     if let Ok(mut miner) = client.get_miner(&ip, None).await {
         ret.make = Some(miner.get_type().to_string());
@@ -136,6 +138,10 @@ async fn scan_miner(client: Client, ip: String) -> Miner {
         }
         if !ret.pools.is_empty() && ret.pools[0].url.is_empty() {
             ret.errors.push("No pool set".to_string());
+        }
+        // Lastly check if miner is sleeping
+        if let Ok(sleep) = miner.get_sleep().await {
+            ret.sleep = sleep;
         }
     }
     ret
