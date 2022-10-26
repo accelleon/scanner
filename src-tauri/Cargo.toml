@@ -21,7 +21,7 @@ tokio = { version = "1.21.2", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 
-libminer = { git = "https://github.com/accelleon/libminer", branch = "dev", features = ["all", "vendored-openssl"] }
+libminer = { path = "../../libminer", features = ["all", "vendored-openssl"] }
 sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "macros", "sqlite", "offline"] }
 csv = { version = "1" }
 anyhow = "1.0.51"
