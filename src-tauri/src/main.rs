@@ -4,132 +4,51 @@
 )]
 
 use db::DbCan;
-use serde::{Serialize, Deserialize};
+use jobs::Job;
+use serde::Serialize;
 use libminer::{ClientBuilder, Client, Pool};
 use sqlx::sqlite::SqlitePool;
 use tauri::{State, Manager};
 use anyhow::Result;
 use tokio::sync::Mutex;
+use tokio::sync::oneshot;
 
 mod db;
 mod frontier;
+mod jobs;
+mod models;
 use db::Config;
+use models::Can;
 
-#[derive(Serialize)]
-struct Can {
-    id: i64,
-    name: String,
+struct JobState {
+    working: bool,
+    cancel: Option<oneshot::Sender<()>>,
 }
 
-impl From<DbCan> for Can {
-    fn from(can: DbCan) -> Self {
-        Self {
-            id: can.id,
-            name: can.name,
-        }
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-struct Miner {
-    ip: String,
-    make: Option<String>,
-    model: Option<String>,
-    mac: Option<String>,
-    hashrate: Option<f64>,
-    temp: Option<f64>,
-    fan: Option<Vec<u32>>,
-    uptime: Option<f64>,
-    errors: Vec<String>,
-    pools: Vec<Pool>,
-    sleep: bool,
-}
-
-#[derive(Serialize, Debug)]
-struct Rack {
-    name: String,
-    width: i64,
-    height: i64,
-    miners: Vec<Vec<Miner>>,
-}
-
-#[derive(Serialize, Debug, Clone)]
-struct MinerEvent {
-    rack: i64,
-    row: i64,
-    index: i64,
-    miner: Miner,
-}
-
-#[derive(Serialize, Debug, Clone)]
-struct Progress {
-    value: f64,
-    max: usize,
-    done: usize,
-    job: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Config {
-    refreshRate: u64,
-    maxConnections: usize,
-    connectionTimeout: u64,
-    readTimeout: u64,
-}
-
-impl Config {
+impl JobState {
     fn new() -> Self {
         Self {
-            refreshRate: 30,
-            maxConnections: 500,
-            connectionTimeout: 10,
-            readTimeout: 15,
+            working: false,
+            cancel: None,
         }
     }
 
-    async fn load(db: &SqlitePool) -> Result<Self> {
-        let row = sqlx::query!("SELECT * FROM config")
-            .fetch_one(db)
-            .await;
-        match row {
-            Err(sqlx::Error::RowNotFound) | Err(sqlx::Error::Database(_)) => {
-                let default = Config::new();
-                sqlx::query!("CREATE TABLE IF NOT EXISTS config (
-                    id INTEGER PRIMARY KEY NOT NULL,
-                    key TEXT NOT NULL UNIQUE,
-                    value TEXT NOT NULL
-                );")
-                    .execute(db)
-                    .await?;
-                default.save(db).await?;
-                Ok(default)
-            }
-            Ok(row) => {
-                Ok(serde_json::from_str(&row.value)?)
-            }
-            Err(e) => Err(e.into()),
-        }
+    fn done(&mut self) {
+        self.working = false;
+        self.cancel = None;
     }
 
-    async fn save(&self, db: &SqlitePool) -> Result<()> {
-        let serial = serde_json::to_string(self)?;
-        sqlx::query!("UPDATE config SET value = ? WHERE key = 'json'",
-            serial
-        )
-            .execute(db)
-            .await?;
+    fn start(&mut self, cancel: oneshot::Sender<()>) {
+        self.working = true;
+        self.cancel = Some(cancel);
+    }
+
+    async fn cancel(&mut self) -> Result<()> {
+        if let Some(cancel) = self.cancel.take() {
+            cancel.send(()).map_err(|_| anyhow::anyhow!("Failed to cancel job"))?;
+        }
         Ok(())
     }
-}
-
-async fn update_progress(job: String, done: usize, max: usize, app: tauri::AppHandle) -> Result<()> {
-    let progress = Progress {
-        value: done as f64 / max as f64,
-        max,
-        done,
-        job,
-    };
-    Ok(app.emit_all("progress", progress)?)
 }
 
 #[tauri::command]
@@ -169,101 +88,44 @@ async fn save_settings(settings: Config, client: State<'_, Mutex<Client>>, db: S
 }
 
 #[tauri::command]
+async fn run_job(
+    job: Job,
+    jobstate: State<'_, Mutex<JobState>>,
+    client: State<'_, Mutex<Client>>,
+    db: State<'_, SqlitePool>,
+    app: tauri::AppHandle
+) -> Result<(), String> {
+    // Check if we're already working
+    let mut jobstate = jobstate.lock().await;
+    if jobstate.working {
+        return Err("Already working".to_string());
+    }
+    // Set our job state and save the cancel handle
+    let (mut job, cancel) = jobs::JobWrapper::new(job, app.clone());
+    jobstate.start(cancel);
+    drop(jobstate);
+
+    // Process the job
+    job.prepare(&db).await.map_err(|e| e.to_string())?;
+    let client = client.lock().await.clone();
+    job.run(app.clone(), &db, client).await.map_err(|e| e.to_string())?;
+    let mut jobstate = jobstate.lock().await;
+    jobstate.done();
+    Ok(())
+}
+
+#[tauri::command]
 async fn get_settings(db: State<'_, SqlitePool>) -> Result<Config, String> {
     Config::load(&db).await.map_err(|e| e.to_string())
 }
 
-async fn scan_miner(client: Client, ip: String) -> Miner {
-    let mut ret = Miner {
-        ip: ip.to_string(),
-        make: None,
-        model: None,
-        hashrate: None,
-        temp: None,
-        fan: None,
-        uptime: None,
-        mac: None,
-        errors: vec![],
-        pools: vec![],
-        sleep: false,
-    };
-    if let Ok(mut miner) = client.get_miner(&ip, None).await {
-        ret.make = Some(miner.get_type().to_string());
-        if let Err(_) = miner.auth("admin", "admin").await {
-            miner.auth("root", "root").await;
-        }
-        ret.model = Some(miner.get_model().await.unwrap_or("Unknown".to_string()));
-        ret.hashrate = Some(miner.get_hashrate().await.unwrap_or(0.0));
-        ret.temp = miner.get_temperature().await.ok();
-        ret.fan = miner.get_fan_speed().await.ok();
-        ret.mac = Some(miner.get_mac().await.unwrap_or("Unknown".to_string()));
-        ret.pools = miner.get_pools().await.unwrap_or(vec![]);
-        if ret.hashrate == Some(0.0) {
-            // Try to get errors up to 3 times
-            for _ in 0..3 {
-                if let Ok(errors) = miner.get_errors().await {
-                    ret.errors = errors;
-                    break;
-                }
-            }
-        }
-        if !ret.pools.is_empty() && ret.pools[0].url.is_empty() {
-            ret.errors.push("No pool set".to_string());
-        }
-        // Lastly check if miner is sleeping
-        if let Ok(sleep) = miner.get_sleep().await {
-            ret.sleep = sleep;
-        }
-    }
-    ret
-}
-
-async fn scan_emit(rack: i64, row: i64, index: i64, ip: String, client: Client, app: tauri::AppHandle) {
-    let miner = scan_miner(client.clone(), ip).await;
-    app.emit_all("miner", MinerEvent {
-        rack,
-        row,
-        index,
-        miner,
-    });
-}
-
-#[tauri::command]
-async fn scan_miners_async(can: i64, client: State<'_, Mutex<Client>>, db: State<'_, SqlitePool>, app: tauri::AppHandle) -> Result<(), String> {
-    let mut can = db::DbCan::get(&db, can).await.map_err(|e| e.to_string())?;
-    can.load_racks(&db).await.map_err(|e| e.to_string())?;
-
-    let client = client.lock().await.clone();
-
-    // Collect all ips into a list
-    let mut futures = Vec::new();
-    for rack in &can.racks {
-        for row in &rack.miners {
-            for miner in row {
-                futures.push(
-                    tokio::spawn(scan_emit(rack.index, miner.row, miner.index, miner.ip.clone(), client.clone(), app.clone()))
-                )
-            }
-        }
-    }
-    let mut done: usize = 0;
-    let max = futures.len();
-    update_progress("Scanning".to_string(), done, max, app.clone()).await;
-    for future in futures {
-        future.await;
-        done += 1;
-        update_progress("Scanning...".to_string(), done, max, app.clone()).await;
-    }
-    Ok(())
-}
-
 async fn main_async() {
-    // Set up tracing subscriber
     tracing_subscriber::fmt::init();
 
     let db = db::connect().await.unwrap();
-
     let config = Config::load(&db).await.unwrap();
+
+    let jobstate = Mutex::new(JobState::new());
 
     let client = ClientBuilder::new()
         .connect_timeout(tokio::time::Duration::from_secs(config.connectionTimeout))
@@ -276,10 +138,11 @@ async fn main_async() {
     tauri::Builder::default()
         .manage(Mutex::new(client))
         .manage(db)
+        .manage(jobstate)
         .invoke_handler(tauri::generate_handler![
             get_cans,
             gen_empty_can,
-            scan_miners_async,
+            run_job,
             import_frontier_locations,
             save_settings,
             get_settings,
