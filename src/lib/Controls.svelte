@@ -212,9 +212,9 @@
     grid-template-columns: 1fr 1fr 1fr 1fr;
   }
 
-  button[disabled]:active,
-  button[disabled],
-  button[disabled]:hover {
+  button:disabled:active,
+  button:disabled,
+  button:disabled:hover {
     background-color: grey;
     color: darkgrey;
     cursor: not-allowed !important;
