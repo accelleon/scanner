@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 
 mod db;
 mod frontier;
+use db::Config;
 
 #[derive(Serialize)]
 struct Can {
