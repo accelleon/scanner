@@ -2,9 +2,11 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::sqlite::SqlitePool;
 
 pub mod models;
+mod config;
 pub use models::can::DbCan;
 pub use models::miner::DbMiner;
 pub use models::rack::DbRack;
+pub use config::Config;
 
 pub async fn connect() -> Result<SqlitePool, sqlx::Error> {
     let opts = SqliteConnectOptions::new()

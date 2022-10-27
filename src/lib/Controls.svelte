@@ -14,21 +14,23 @@
   let selected;
   let scanned;
   let scanning = false;
-  let monitor = false;
-  let disabled = false;
-  let disabled2 = false;
   let progress;
-  let monitorInterval;
+  let monitor;
 
   var setIntervalSynchronous = function (func, delay) {
-    var intervalFunction, timeoutId, clear;
+    var intervalFunction, timeoutId, clear, cancel;
     // Call to clear the interval.
     clear = function () {
+      // Since we run the function immediately without a timeout
+      // we need to cancel the timeout that would have been created
+      cancel = true;
       clearTimeout(timeoutId);
     };
     intervalFunction = function () {
-      func().then(() => {
-        timeoutId = setTimeout(intervalFunction, delay);
+      func().finally(() => {
+        if (!cancel) {
+          timeoutId = setTimeout(intervalFunction, delay);
+        }
       });
     }
     intervalFunction();
@@ -43,28 +45,33 @@
     });
   });
 
-  async function scan() {
-    scanning = true;
-    scanned = selected;
-    let res = await invoke("scan_miners_async", { can: selected.id });
-    scanning = false;
-    return res;
+  function scan() {
+    return invoke("run_job", { job: { job: "Scan", can: selected.id }});
   }
 
   async function scanMiners() {
-    await invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
-      miners = resp.racks;
-      scan();
-    });
+      if (!scanning) {
+        invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
+          miners = resp.racks;
+          scanning = true;
+          scanned = selected;
+          scan().finally(() => {
+            scanning = false;
+          });
+        });
+      } else {
+        invoke("cancel_job");
+      }
   }
 
   async function monitorMiners() {
-    monitor = !monitor;
-    if (monitor) {
-      monitorInterval = setIntervalSynchronous(scan, $settings.refreshRate * 1000);
+    if (!monitor) {
+      monitor = setIntervalSynchronous(scan, $settings.refreshRate * 1000);
     } else {
-      monitorInterval();
-      monitorInterval = null;
+      invoke("cancel_job").then(() => {
+        monitor();
+        monitor = undefined;
+      });
     }
   }
 
@@ -78,8 +85,6 @@
       miners = resp.racks;
     });
   }
-  $: disabled = monitor || scanning || !selected;
-  $: disabled2 = scanning || !selected;
 </script>
 
 {#if progress}
@@ -97,8 +102,8 @@
       class="dropdown"
       disabled = {scanning || monitor}
     />
-    <button on:click={scanMiners} {disabled}>Scan</button>
-    <button on:click={monitorMiners} disabled={disabled2}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
+    <button on:click={scanMiners} disabled={monitor || !selected}> {scanning ? "Cancel" : "Scan" }</button>
+    <button on:click={monitorMiners} disabled={scanning || !selected}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
     <button on:click={settingsDialog} disabled={scanning || monitor}>Settings</button>
   </div>
   <div class="divider" />
