@@ -12,7 +12,6 @@ use tauri::{State, Manager};
 use anyhow::Result;
 use tokio::sync::Mutex;
 use tokio::sync::broadcast;
-use tracing::info;
 
 mod db;
 mod frontier;
@@ -46,7 +45,7 @@ impl JobState {
 
     async fn cancel(&mut self) -> Result<()> {
         if let Some(cancel) = self.cancel.take() {
-            info!("Sent: {}", cancel.send(()).map_err(|_| anyhow::anyhow!("Failed to cancel job"))?);
+            cancel.send(()).map_err(|_| anyhow::anyhow!("Failed to cancel job"))?;
         }
         Ok(())
     }
