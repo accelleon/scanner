@@ -11,7 +11,8 @@ use sqlx::sqlite::SqlitePool;
 use tauri::{State, Manager};
 use anyhow::Result;
 use tokio::sync::Mutex;
-use tokio::sync::oneshot;
+use tokio::sync::broadcast;
+use tracing::info;
 
 mod db;
 mod frontier;
@@ -22,7 +23,7 @@ use models::Can;
 
 struct JobState {
     working: bool,
-    cancel: Option<oneshot::Sender<()>>,
+    cancel: Option<broadcast::Sender<()>>,
 }
 
 impl JobState {
@@ -38,14 +39,14 @@ impl JobState {
         self.cancel = None;
     }
 
-    fn start(&mut self, cancel: oneshot::Sender<()>) {
+    fn start(&mut self, cancel: broadcast::Sender<()>) {
         self.working = true;
         self.cancel = Some(cancel);
     }
 
     async fn cancel(&mut self) -> Result<()> {
         if let Some(cancel) = self.cancel.take() {
-            cancel.send(()).map_err(|_| anyhow::anyhow!("Failed to cancel job"))?;
+            info!("Sent: {}", cancel.send(()).map_err(|_| anyhow::anyhow!("Failed to cancel job"))?);
         }
         Ok(())
     }
@@ -96,21 +97,31 @@ async fn run_job(
     app: tauri::AppHandle
 ) -> Result<(), String> {
     // Check if we're already working
-    let mut jobstate = jobstate.lock().await;
-    if jobstate.working {
+    let mut job_guard = jobstate.lock().await;
+    if job_guard.working {
         return Err("Already working".to_string());
     }
-    // Set our job state and save the cancel handle
-    let (mut job, cancel) = jobs::JobWrapper::new(job, app.clone());
-    jobstate.start(cancel);
-    drop(jobstate);
 
-    // Process the job
-    job.prepare(&db).await.map_err(|e| e.to_string())?;
+    // Set up our runner and cancel channel
     let client = client.lock().await.clone();
-    job.run(app.clone(), &db, client).await.map_err(|e| e.to_string())?;
-    let mut jobstate = jobstate.lock().await;
-    jobstate.done();
+    let (job, cancel) = jobs::JobRunner::new(job, &db, app, client).await.map_err(|e| e.to_string())?;
+    job_guard.start(cancel);
+    drop(job_guard);
+
+    // Run our job
+    if let Err(e) = job.run().await {
+        tracing::error!("Error running job: {}", e);
+    }
+
+    let mut job_guard = jobstate.lock().await;
+    job_guard.done();
+    Ok(())
+}
+
+#[tauri::command]
+async fn cancel_job(jobstate: State<'_, Mutex<JobState>>) -> Result<(), String> {
+    let mut job_guard = jobstate.lock().await;
+    job_guard.cancel().await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -143,6 +154,7 @@ async fn main_async() {
             get_cans,
             gen_empty_can,
             run_job,
+            cancel_job,
             import_frontier_locations,
             save_settings,
             get_settings,

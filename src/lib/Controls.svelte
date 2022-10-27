@@ -46,16 +46,21 @@
   async function scan() {
     scanning = true;
     scanned = selected;
-    let res = await invoke("scan_miners_async", { can: selected.id });
+    //let res = await invoke("scan_miners_async", { can: selected.id });
+    let res = await invoke("run_job", { job: { job: "Scan", can: selected.id }});
     scanning = false;
     return res;
   }
 
   async function scanMiners() {
-    await invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
-      miners = resp.racks;
-      scan();
-    });
+      if (!scanning) {
+        invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
+            miners = resp.racks;
+            scan();
+        });
+      } else {
+        await invoke("cancel_job");
+      }
   }
 
   async function monitorMiners() {
@@ -97,7 +102,7 @@
       class="dropdown"
       disabled = {scanning || monitor}
     />
-    <button on:click={scanMiners} {disabled}>Scan</button>
+    <button on:click={scanMiners} disabled={monitor || !selected}> {scanning ? "Cancel" : "Scan" }</button>
     <button on:click={monitorMiners} disabled={disabled2}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
     <button on:click={settingsDialog} disabled={scanning || monitor}>Settings</button>
   </div>

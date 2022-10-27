@@ -4,10 +4,13 @@ use tauri::AppHandle;
 use libminer::Client;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
-use tokio::sync::oneshot;
-use tokio::sync::Mutex;
+use tokio::sync::broadcast;
+use tokio::sync::{Mutex};
 use tauri::Manager;
-use tracing::error;
+use tracing::{error, warn, info};
+use std::sync::Arc;
+use std::pin::Pin;
+use std::future::Future;
 
 use crate::models::{Miner, MinerEvent};
 use crate::db;
@@ -58,7 +61,7 @@ async fn scan_miner(client: Client, ip: &str) -> Miner {
     ret
 }
 
-async fn scan_emit(miner: &MinerScan, client: Client, app: tauri::AppHandle, progress: &Mutex<Progress>) -> Result<()>{
+async fn scan_emit(miner: MinerScan, client: Client, app: tauri::AppHandle) -> Result<()>{
     let result = scan_miner(client.clone(), &miner.ip).await;
     app.emit_all("miner", MinerEvent {
         rack: miner.rack,
@@ -66,16 +69,11 @@ async fn scan_emit(miner: &MinerScan, client: Client, app: tauri::AppHandle, pro
         index: miner.index,
         miner: result,
     })?;
-    // Scoping mutex guards is just good practice
-    {
-        let mut progress = progress.lock().await;
-        progress.increment()?;
-    }
     Ok(())
 }
 
 #[derive(Debug, Clone)]
-struct MinerScan {
+pub struct MinerScan {
     rack: i64,
     row: i64,
     index: i64,
@@ -85,69 +83,35 @@ struct MinerScan {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ScanJob {
     pub can: i64,
-    #[serde(skip)]
-    pub todo: Vec<MinerScan>,
 }
 
 #[async_trait]
 impl JobDef for ScanJob {
-    async fn prepare(&mut self, db: &SqlitePool) -> Result<()> {
-        let mut can = db::DbCan::get(db, self.can).await.map_err(|e| e.to_string())?;
-        can.load_racks(db).await.map_err(|e| e.to_string())?;
-        let mut todo = Vec::new();
+    async fn prepare(
+        &self,
+        db: &SqlitePool,
+        app: AppHandle,
+        client: Client,
+    ) -> Result<Vec<Pin<Box<dyn Future<Output = Result<()>> + Send>>>> {
+        let mut can = db::DbCan::get(db, self.can).await?;
+        can.load_racks(db).await?;
+        let mut futures = vec![];
         for rack in &can.racks {
             for row in &rack.miners {
                 for miner in row {
-                    todo.push(MinerScan {
+                    let miner = MinerScan {
                         rack: rack.index,
                         row: miner.row,
                         index: miner.index,
                         ip: miner.ip.clone(),
-                    });
+                    };
+                    futures.push(
+                        Box::pin(scan_emit(miner, client.clone(), app.clone()))
+                        as Pin<Box<dyn Future<Output = Result<()>> + Send>>
+                    );
                 }
             }
         }
-        Ok(())
-    }
-
-    async fn run(
-        &self,
-        app: AppHandle,
-        db: &SqlitePool,
-        client: Client,
-        cancel: oneshot::Receiver<()>,
-        progress: &Mutex<Progress>
-    ) -> Result<()> {
-        let mut futures = Vec::new();
-        for scan in &self.todo {
-            futures.push(
-                tokio::spawn(scan_emit(scan, client.clone(), app.clone(), progress))
-            )
-        }
-        // We're gonna spawn out a separate task to wait for each JoinHandle
-        let scanwait = tokio::spawn(async move {
-            for future in futures {
-                if let Err(e) = future.await {
-                    error!("Scan future failed: {}", e);
-                }
-            }
-        });
-        // Select between the scanwait task and the cancel channel
-        tokio::select! {
-            _ = scanwait => {
-                Ok(())
-            }
-            _ = cancel => {
-                // Abort all join handles
-                for future in futures {
-                    future.abort();
-                }
-                Err(anyhow::format_err!("Scan cancelled"))
-            }
-        }
-    }
-
-    fn todo_count(&self) -> usize {
-        self.todo.len()
+        Ok(futures)
     }
 }
