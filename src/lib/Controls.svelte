@@ -41,6 +41,9 @@
 
   onMount(async () => {
     cans = await invoke("get_cans");
+    if (cans.length > 0) {
+      selected = cans[0];
+    }
     let unlisten = listen("progress", (e: any) => {
       progress = e.payload;
     });
