@@ -98,6 +98,8 @@
       miners = resp.racks;
     });
   }
+
+  $: control_disabled = monitor || working || selection.length == 0;
 </script>
 
 {#if progress}
@@ -127,10 +129,9 @@
       <Tab>Tab 3</Tab>
     </TabList>
     <TabPanel>
-      <!-- <button>Start Locating</button> -->
-      <button on:click={() => runJob("Locate", {"locate": true})}>Locate On</button>
-      <button on:click={() => runJob("Locate", {"locate": false})}>Locate Off</button>
-      <button on:click={() => runJob("Reboot")}>Reboot</button>
+      <button disabled={control_disabled} on:click={() => runJob("Locate", {"locate": true})}>Locate On</button>
+      <button disabled={control_disabled} on:click={() => runJob("Locate", {"locate": false})}>Locate Off</button>
+      <button disabled={control_disabled} on:click={() => runJob("Reboot")}>Reboot</button>
     </TabPanel>
     <TabPanel>
       <div class="pool">
