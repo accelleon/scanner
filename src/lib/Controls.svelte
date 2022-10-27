@@ -14,19 +14,23 @@
   let selected;
   let scanned;
   let scanning = false;
-  let monitor = false;
   let progress;
-  let monitorInterval;
+  let monitor;
 
   var setIntervalSynchronous = function (func, delay) {
-    var intervalFunction, timeoutId, clear;
+    var intervalFunction, timeoutId, clear, cancel;
     // Call to clear the interval.
     clear = function () {
+      // Since we run the function immediately without a timeout
+      // we need to cancel the timeout that would have been created
+      cancel = true;
       clearTimeout(timeoutId);
     };
     intervalFunction = function () {
-      func().then(() => {
-        timeoutId = setTimeout(intervalFunction, delay);
+      func().finally(() => {
+        if (!cancel) {
+          timeoutId = setTimeout(intervalFunction, delay);
+        }
       });
     }
     intervalFunction();
@@ -41,8 +45,8 @@
     });
   });
 
-  async function scan() {
-    await invoke("run_job", { job: { job: "Scan", can: selected.id }});
+  function scan() {
+    return invoke("run_job", { job: { job: "Scan", can: selected.id }});
   }
 
   async function scanMiners() {
@@ -56,18 +60,18 @@
           });
         });
       } else {
-        await invoke("cancel_job");
+        invoke("cancel_job");
       }
   }
 
   async function monitorMiners() {
-    monitor = !monitor;
-    if (monitor) {
-      monitorInterval = setIntervalSynchronous(scan, $settings.refreshRate * 1000);
+    if (!monitor) {
+      monitor = setIntervalSynchronous(scan, $settings.refreshRate * 1000);
     } else {
-      monitorInterval();
-      monitorInterval = null;
-      await invoke("cancel_job");
+      invoke("cancel_job").then(() => {
+        monitor();
+        monitor = undefined;
+      });
     }
   }
 
