@@ -15,8 +15,6 @@
   let scanned;
   let scanning = false;
   let monitor = false;
-  let disabled = false;
-  let disabled2 = false;
   let progress;
   let monitorInterval;
 
@@ -44,19 +42,18 @@
   });
 
   async function scan() {
-    scanning = true;
-    scanned = selected;
-    //let res = await invoke("scan_miners_async", { can: selected.id });
-    let res = await invoke("run_job", { job: { job: "Scan", can: selected.id }});
-    scanning = false;
-    return res;
+    await invoke("run_job", { job: { job: "Scan", can: selected.id }});
   }
 
   async function scanMiners() {
       if (!scanning) {
         invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
-            miners = resp.racks;
-            scan();
+          miners = resp.racks;
+          scanning = true;
+          scanned = selected;
+          scan().finally(() => {
+            scanning = false;
+          });
         });
       } else {
         await invoke("cancel_job");
@@ -70,6 +67,7 @@
     } else {
       monitorInterval();
       monitorInterval = null;
+      await invoke("cancel_job");
     }
   }
 
@@ -83,8 +81,6 @@
       miners = resp.racks;
     });
   }
-  $: disabled = monitor || scanning || !selected;
-  $: disabled2 = scanning || !selected;
 </script>
 
 {#if progress}
@@ -103,7 +99,7 @@
       disabled = {scanning || monitor}
     />
     <button on:click={scanMiners} disabled={monitor || !selected}> {scanning ? "Cancel" : "Scan" }</button>
-    <button on:click={monitorMiners} disabled={disabled2}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
+    <button on:click={monitorMiners} disabled={scanning || !selected}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
     <button on:click={settingsDialog} disabled={scanning || monitor}>Settings</button>
   </div>
   <div class="divider" />
