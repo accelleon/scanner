@@ -30,6 +30,7 @@ pub struct Miner {
     pub errors: Vec<String>,
     pub pools: Vec<Pool>,
     pub sleep: bool,
+    pub locate: bool,
 }
 
 #[derive(Serialize, Debug)]

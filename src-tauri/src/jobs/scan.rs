@@ -25,6 +25,7 @@ async fn scan_miner(client: Client, ip: &str) -> Miner {
         errors: vec![],
         pools: vec![],
         sleep: false,
+        locate: false,
     };
     if let Ok(mut miner) = client.get_miner(ip, None).await {
         ret.make = Some(miner.get_type().to_string());
@@ -36,6 +37,7 @@ async fn scan_miner(client: Client, ip: &str) -> Miner {
         ret.temp = miner.get_temperature().await.ok();
         ret.fan = miner.get_fan_speed().await.ok();
         ret.mac = Some(miner.get_mac().await.unwrap_or("Unknown".to_string()));
+        ret.locate = miner.get_blink().await.unwrap_or(false);
         ret.pools = miner.get_pools().await.unwrap_or(vec![]);
         if ret.hashrate == Some(0.0) {
             // Try to get errors up to 3 times
