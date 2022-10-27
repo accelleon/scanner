@@ -39,7 +39,7 @@ impl Progress {
 
     fn increment(&mut self) -> Result<()> {
         self.done += 1;
-        self.value = (self.done as f64 / self.max as f64) * 100.0;
+        self.value = self.done as f64 / self.max as f64;
         self.app.emit_all("progress", self as &Progress)?;
         Ok(())
     }
@@ -116,9 +116,7 @@ impl JobRunner {
             futures.push(
                 tokio::spawn(async move {
                     tokio::select! {
-                        _ = cancel.recv() => {
-                            println!("Cancelled");
-                        }
+                        _ = cancel.recv() => {}
                         _ = task => {
                             progress.lock().await.increment().unwrap();
                         }
