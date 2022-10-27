@@ -21,7 +21,7 @@ impl Config {
     }
 
     pub async fn load(db: &SqlitePool) -> Result<Self> {
-        let row = sqlx::query!("SELECT * FROM config")
+        let row = sqlx::query!("SELECT value FROM config WHERE key = 'config'")
             .fetch_one(db)
             .await;
         match row {
@@ -34,7 +34,12 @@ impl Config {
                 );")
                     .execute(db)
                     .await?;
-                default.save(db).await?;
+                let serial = serde_json::to_string(&default)?;
+                sqlx::query!("INSERT INTO config (key, value) VALUES ('config', ?)",
+                    serial
+                )
+                    .execute(db)
+                    .await?;
                 Ok(default)
             }
             Ok(row) => {
@@ -46,7 +51,7 @@ impl Config {
 
     pub async fn save(&self, db: &SqlitePool) -> Result<()> {
         let serial = serde_json::to_string(self)?;
-        sqlx::query!("UPDATE config SET value = ? WHERE key = 'json'",
+        sqlx::query!("UPDATE config SET value = ? WHERE key = 'config'",
             serial
         )
             .execute(db)
