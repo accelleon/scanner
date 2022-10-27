@@ -1,6 +1,5 @@
 use std::future::Future;
 use std::ops::Deref;
-use std::ops::DerefMut;
 use std::pin::Pin;
 
 use async_trait::async_trait;
@@ -79,13 +78,6 @@ impl Deref for Job {
     }
 }
 
-impl DerefMut for Job {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            Job::Scan(job) => job,
-        }
-    }
-}
 pub struct JobRunner {
     tasks: Vec<Pin<Box<dyn Future<Output = Result<()>> + Send>>>,
     cancel: broadcast::Sender<()>,
@@ -95,7 +87,7 @@ pub struct JobRunner {
 impl JobRunner {
     /// Create a new job wrapper
     /// Primarily to handle the cancellation of jobs
-    /// Returns a JobWrapper and a oneshot::Sender
+    /// Returns a JobRunner and a broadcast::Sender
     pub async fn new(job: Job, db: &SqlitePool, app: AppHandle, client: Client) -> Result<(Self, broadcast::Sender<()>)> {
         let tasks = job.prepare(&db, app.clone(), client).await?;
         let (cancel, _) = broadcast::channel(1);

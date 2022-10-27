@@ -4,17 +4,13 @@ use tauri::AppHandle;
 use libminer::Client;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
-use tokio::sync::broadcast;
-use tokio::sync::{Mutex};
 use tauri::Manager;
-use tracing::{error, warn, info};
-use std::sync::Arc;
 use std::pin::Pin;
 use std::future::Future;
 
 use crate::models::{Miner, MinerEvent};
 use crate::db;
-use super::{Progress, JobDef};
+use super::JobDef;
 
 async fn scan_miner(client: Client, ip: &str) -> Miner {
     let mut ret = Miner {
