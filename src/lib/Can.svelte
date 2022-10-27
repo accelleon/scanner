@@ -10,6 +10,20 @@
   let hashing;
   let hashrate;
 
+  function selectNotHashing() {
+    selection = miners
+      .map((rack) => rack.miners)
+      .flat(2)
+      .filter((miner) => !miner.hashrate && miner.make);
+  }
+
+  function selectSleeping() {
+    selection = miners
+      .map((rack) => rack.miners)
+      .flat(2)
+      .filter((miner) => miner.sleep && miner.make);
+  }
+
   function format_hashrate(ths) {
     if (ths < 1000) {
       return `${round(ths, 2)} TH/s`;
@@ -49,6 +63,35 @@
       <Rack bind:selection {rack} />
     {/each}
   </div>
+  <div class="footer">
+    <div>
+      <button on:click={selectNotHashing}>Select Not Hashing</button>
+      <button on:click={selectSleeping}>Select Sleeping</button>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="miner" style="--bgcolor: #ddd;"></div>
+        <div class="legend-text">Not Detected</div>
+      </div>
+      <div class="legend-item">
+        <div class="miner" style="--bgcolor: green;"></div>
+        <div class="legend-text">Hashing</div>
+      </div>
+      <div class="legend-item">
+        <div class="miner" style="--bgcolor: red;"></div>
+        <div class="legend-text">Not Hashing</div>
+      </div>
+      <div class="legend-item">
+        <div class="miner" style="--bgcolor: black;"></div>
+        <div class="legend-text">Sleeping</div>
+      </div>
+      <div class="legend-item">
+        <div class="miner-blink" style="--bgcolor: red;"></div>
+        <div class="legend-text">Locating</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -58,5 +101,58 @@
     grid-gap: 10px;
     padding: 10px;
     margin: 0;
+  }
+
+  .miner {
+    background-color: var(--bgcolor);
+    border: 1px solid black;
+    width: 1.5em;
+    height: 1.5em;
+  }
+
+  .miner-blink {
+    border: 1px solid black;
+    width: 1.5em;
+    height: 1.5em;
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink {
+    0%, 49% { 
+      background-color: var(--bgcolor);
+    }
+    50%, 100% {
+      background-color: blue;
+    }
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .legend {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  .legend-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin: 5px;
+    padding: 0;
+  }
+
+  .legend-text {
+    margin: 0;
+    padding: 0;
+    margin-left: 5px;
   }
 </style>

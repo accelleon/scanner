@@ -16,6 +16,8 @@ use std::sync::Arc;
 mod scan;
 mod locate;
 mod reboot;
+mod pool;
+mod sleep;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Progress {
@@ -70,6 +72,8 @@ pub enum Job {
     Scan(scan::ScanJob),
     Locate(locate::LocateJob),
     Reboot(reboot::RebootJob),
+    Pool(pool::PoolJob),
+    Sleep(sleep::SleepJob),
 }
 
 impl Deref for Job {
@@ -80,6 +84,8 @@ impl Deref for Job {
             Job::Scan(job) => job,
             Job::Locate(job) => job,
             Job::Reboot(job) => job,
+            Job::Pool(job) => job,
+            Job::Sleep(job) => job,
         }
     }
 }

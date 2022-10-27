@@ -129,9 +129,19 @@
       <Tab>Tab 3</Tab>
     </TabList>
     <TabPanel>
-      <button disabled={control_disabled} on:click={() => runJob("Locate", {"locate": true})}>Locate On</button>
-      <button disabled={control_disabled} on:click={() => runJob("Locate", {"locate": false})}>Locate Off</button>
-      <button disabled={control_disabled} on:click={() => runJob("Reboot")}>Reboot</button>
+      <div class="control-grid">
+        <div class="control-group">
+          <button disabled={control_disabled} on:click={() => runJob("Locate", {"locate": true})}>Locate On</button>
+          <button disabled={control_disabled} on:click={() => runJob("Locate", {"locate": false})}>Locate Off</button>
+        </div>
+        <div class="control-group">
+          <button disabled={control_disabled} on:click={() => runJob("Sleep", {"sleep": true})}>Sleep</button>
+          <button disabled={control_disabled} on:click={() => runJob("Sleep", {"sleep": false})}>Wake</button>
+        </div>
+        <div class="control-group">
+          <button disabled={control_disabled} on:click={() => runJob("Reboot")}>Reboot</button>
+        </div>
+      </div>
     </TabPanel>
     <TabPanel>
       <div class="pool">
@@ -240,5 +250,20 @@
     color: darkgrey;
     cursor: not-allowed !important;
     pointer-events: none;
+  }
+
+  .control-grid {
+    display: grid;
+    grid-template-rows: auto auto auto;
+  }
+
+  .control-group {
+    display: grid;
+    margin-top: 5px;
+    grid-template-columns: auto auto;
+  }
+
+  .control-group > * {
+    margin-right: 5px;
   }
 </style>
