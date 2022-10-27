@@ -92,7 +92,7 @@
 <!-- svelte-ignore a11y-mouse-events-have-key-events -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
-  class="miner"
+  class={miner.locate ? "miner-blink" : "miner"}
   style="--bgcolor: {color}"
   on:click|preventDefault|stopPropagation={onClick}
   on:dblclick|preventDefault|stopPropagation={onDblClick}
@@ -162,6 +162,25 @@
     align-items: center;
     display: flex;
   }
+
+  .miner-blink {
+    border: 1px solid black;
+    width: 1.5em;
+    height: 1.5em;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink {
+      0%, 49% { 
+        background-color: var(--bgcolor);
+      }
+      50%, 100% {
+        background-color: blue;
+      }
+    }
 
   .tooltip {
     position: absolute;

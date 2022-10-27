@@ -70,4 +70,20 @@ impl DbRack {
         self.miners = rack_miners;
         Ok(())
     }
+
+    pub async fn get(db: &SqlitePool, id: i64) -> Result<DbRack> {
+        let row = sqlx::query!("SELECT id, can_id, name, index_, width, height FROM racks WHERE id = ?", id)
+            .fetch_one(db).await?;
+        let mut rack = DbRack {
+            id: row.id,
+            can_id: row.can_id,
+            name: row.name,
+            index: row.index_,
+            width: row.width,
+            height: row.height,
+            miners: vec![],
+        };
+        rack.load_miners(db).await?;
+        Ok(rack)
+    }
 }

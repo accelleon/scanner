@@ -83,6 +83,12 @@
       miners[miner.rack].miners[miner.row][miner.index] = miner.miner;
     });
 
+    let unlisten2 = listen("locate", (e: any) => {
+      let miner = e.payload;
+      console.log(miner);
+      miners[miner.rack].miners[miner.row][miner.index].locate = miner.locate;
+    });
+
     invoke("get_settings").then((res: any) => {
       settings.set(res);
     });
@@ -100,7 +106,7 @@
 
 <main class="container">
   <Modal show={$modal} />
-  <Controls bind:miners />
+  <Controls bind:miners selection={selected_miners}/>
   <Can {miners} bind:selection={selected_miners} />
   <Table
     {columns}

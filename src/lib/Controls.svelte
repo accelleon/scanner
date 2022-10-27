@@ -10,10 +10,11 @@
   import { settings } from "../stores.js";
 
   export let miners: any = undefined;
+  export let selection: any[];
   let cans = [];
   let selected;
   let scanned;
-  let scanning = false;
+  let working = false;
   let progress;
   let monitor;
 
@@ -50,13 +51,13 @@
   }
 
   async function scanMiners() {
-      if (!scanning) {
+      if (!working) {
         invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
           miners = resp.racks;
-          scanning = true;
+          working = true;
           scanned = selected;
           scan().finally(() => {
-            scanning = false;
+            working = false;
           });
         });
       } else {
@@ -72,6 +73,18 @@
         monitor();
         monitor = undefined;
       });
+    }
+  }
+
+  async function runJob(job: string, args?: any) {
+    console.log("runJob", job, args);
+    if (!working) {
+      working = true;
+      await invoke("run_job", { job: { job: job, ips: selection.map((m: any) => m.ip), ...args }}).finally(() => {
+        working = false;
+      });
+    } else {
+      invoke("cancel_job");
     }
   }
 
@@ -100,11 +113,11 @@
       selObject={true}
       labelfn={(e) => e.name}
       class="dropdown"
-      disabled = {scanning || monitor}
+      disabled = {working || monitor}
     />
-    <button on:click={scanMiners} disabled={monitor || !selected}> {scanning ? "Cancel" : "Scan" }</button>
-    <button on:click={monitorMiners} disabled={scanning || !selected}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
-    <button on:click={settingsDialog} disabled={scanning || monitor}>Settings</button>
+    <button on:click={scanMiners} disabled={monitor || !selected}> {working ? "Cancel" : "Scan" }</button>
+    <button on:click={monitorMiners} disabled={working || !selected}>{monitor ? "Stop Monitoring" : "Monitor"}</button>
+    <button on:click={settingsDialog} disabled={working || monitor}>Settings</button>
   </div>
   <div class="divider" />
   <Tabs>
@@ -114,8 +127,9 @@
       <Tab>Tab 3</Tab>
     </TabList>
     <TabPanel>
-      <button>Start Locating</button>
-      <button>Locate Selected</button>
+      <!-- <button>Start Locating</button> -->
+      <button on:click={() => runJob("Locate", {"locate": true})}>Locate On</button>
+      <button on:click={() => runJob("Locate", {"locate": false})}>Locate Off</button>
     </TabPanel>
     <TabPanel>
       <div class="pool">

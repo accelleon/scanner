@@ -2,6 +2,8 @@ use sqlx::sqlite::{SqlitePool};
 use anyhow::Result;
 use serde::Serialize;
 
+use super::rack::DbRack;
+
 #[derive(Serialize, Debug)]
 pub struct DbMiner {
     #[serde(skip)]
@@ -59,5 +61,23 @@ impl DbMiner {
         .execute(db)
         .await?;
         Ok(())
+    }
+
+    pub async fn find_ip(db: &SqlitePool, ip: &str) -> Result<DbMiner> {
+        let row = sqlx::query!("SELECT id, rack_id, ip, row, index_ FROM miners WHERE ip = ?", ip)
+            .fetch_one(db).await?;
+        Ok(
+            DbMiner {
+                id: row.id,
+                rack_id: row.rack_id,
+                ip: row.ip,
+                row: row.row,
+                index: row.index_,
+            }
+        )
+    }
+
+    pub async fn get_rack(&self, db: &SqlitePool) -> Result<DbRack> {
+        DbRack::get(db, self.rack_id).await
     }
 }

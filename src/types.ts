@@ -9,6 +9,7 @@ export type Miner = {
   mac?: string;
   errors?: string[];
   sleep?: boolean;
+  locate?: boolean;
 };
 
 export type Rack = {

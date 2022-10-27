@@ -14,6 +14,7 @@ use tauri::Manager;
 use std::sync::Arc;
 
 mod scan;
+mod locate;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Progress {
@@ -66,6 +67,7 @@ pub trait JobDef {
 #[serde(tag = "job")]
 pub enum Job {
     Scan(scan::ScanJob),
+    Locate(locate::LocateJob),
 }
 
 impl Deref for Job {
@@ -74,6 +76,7 @@ impl Deref for Job {
     fn deref(&self) -> &Self::Target {
         match self {
             Job::Scan(job) => job,
+            Job::Locate(job) => job,
         }
     }
 }
