@@ -130,6 +130,7 @@
       <!-- <button>Start Locating</button> -->
       <button on:click={() => runJob("Locate", {"locate": true})}>Locate On</button>
       <button on:click={() => runJob("Locate", {"locate": false})}>Locate Off</button>
+      <button on:click={() => runJob("Reboot")}>Reboot</button>
     </TabPanel>
     <TabPanel>
       <div class="pool">

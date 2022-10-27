@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 mod scan;
 mod locate;
+mod reboot;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Progress {
@@ -68,6 +69,7 @@ pub trait JobDef {
 pub enum Job {
     Scan(scan::ScanJob),
     Locate(locate::LocateJob),
+    Reboot(reboot::RebootJob),
 }
 
 impl Deref for Job {
@@ -77,6 +79,7 @@ impl Deref for Job {
         match self {
             Job::Scan(job) => job,
             Job::Locate(job) => job,
+            Job::Reboot(job) => job,
         }
     }
 }
