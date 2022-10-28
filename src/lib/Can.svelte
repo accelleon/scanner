@@ -24,6 +24,13 @@
       .filter((miner) => miner.sleep && miner.make);
   }
 
+  function selectAll() {
+    selection = miners
+      .map((rack) => rack.miners)
+      .flat(2)
+      .filter((miner) => miner.make);
+  }
+
   function format_hashrate(ths) {
     if (ths < 1000) {
       return `${round(ths, 2)} TH/s`;
@@ -67,6 +74,7 @@
     <div>
       <button on:click={selectNotHashing}>Select Not Hashing</button>
       <button on:click={selectSleeping}>Select Sleeping</button>
+      <button on:click={selectAll}>Select All</button>
     </div>
 
     <div class="legend">
