@@ -10,10 +10,13 @@
   import { round } from "./util";
   import { invoke } from "@tauri-apps/api/tauri";
   import { settings } from "./stores.js";
-
+  import sync from 'css-animation-sync';
+  
   let selected_miners: Miner[] = [];
   let miners: any = [];
   let tab_miners: any = [];
+
+  let animation;
 
   let columns = [
     {
@@ -81,11 +84,19 @@
     let unlisten = listen("miner", (e: any) => {
       let miner = e.payload;
       miners[miner.rack].miners[miner.row][miner.index] = miner.miner;
+      if (animation) {
+        animation.free()
+      }
+      animation = sync('blink');
     });
 
     let unlisten2 = listen("locate", (e: any) => {
       let miner = e.payload;
       miners[miner.rack].miners[miner.row][miner.index].locate = miner.locate;
+      if (animation) {
+        animation.free()
+      }
+      animation = sync('blink');
     });
 
     let unlisten3 = listen("reboot", (e: any) => {

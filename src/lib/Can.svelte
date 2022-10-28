@@ -125,15 +125,6 @@
     animation: blink 1s infinite;
   }
 
-  @keyframes blink {
-    0%, 49% { 
-      background-color: var(--bgcolor);
-    }
-    50%, 100% {
-      background-color: blue;
-    }
-  }
-
   .footer {
     display: flex;
     justify-content: space-between;
