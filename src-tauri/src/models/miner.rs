@@ -5,6 +5,7 @@ use libminer::Pool;
 #[derive(Serialize)]
 pub struct Can {
     id: i64,
+    num: i64,
     name: String,
 }
 
@@ -12,6 +13,7 @@ impl From<DbCan> for Can {
     fn from(can: DbCan) -> Self {
         Self {
             id: can.id,
+            num: can.num,
             name: can.name,
         }
     }
