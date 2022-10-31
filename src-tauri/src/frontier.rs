@@ -59,10 +59,11 @@ pub async fn import_sitemap(db: &SqlitePool, layout: String, sitemap: String) ->
             RackRecordType::GROUP => {
                 info!("Group: {}", record.name);
                 sqlx::query!(r#"
-                    INSERT INTO cans (name)
-                    VALUES (?)
+                    INSERT INTO cans (name, num)
+                    VALUES (?, ?)
                     "#,
-                    record.name
+                    record.name,
+                    record.row,
                 ).execute(db).await?;
             },
             RackRecordType::RACK => {

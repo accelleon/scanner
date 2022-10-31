@@ -6,7 +6,7 @@ mod config;
 pub use models::can::DbCan;
 pub use models::miner::DbMiner;
 pub use models::rack::DbRack;
-pub use config::Config;
+pub use config::{Config, Pools, Pool};
 
 pub async fn connect() -> Result<SqlitePool, sqlx::Error> {
     let opts = SqliteConnectOptions::new()
