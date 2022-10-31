@@ -17,7 +17,7 @@ mod db;
 mod frontier;
 mod jobs;
 mod models;
-use db::Config;
+use db::{Config, Pools};
 use models::Can;
 
 struct JobState {
@@ -129,6 +129,16 @@ async fn get_settings(db: State<'_, SqlitePool>) -> Result<Config, String> {
     Config::load(&db).await.map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn get_pools(db: State<'_, SqlitePool>) -> Result<Pools, String> {
+    Pools::load(&db).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn save_pools(pools: Pools, db: State<'_, SqlitePool>) -> Result<(), String> {
+    pools.save(&db).await.map_err(|e| e.to_string())
+}
+
 async fn main_async() {
     tracing_subscriber::fmt::init();
 
@@ -157,6 +167,8 @@ async fn main_async() {
             import_frontier_locations,
             save_settings,
             get_settings,
+            get_pools,
+            save_pools,
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

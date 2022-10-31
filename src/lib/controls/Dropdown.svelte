@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let options: Array<string | object> = undefined;
+  export let options: Array<string | object> = [];
   export let selObject: boolean = false;
   export let selected: string | object = undefined;
   export let labelfn: Function = (e: any) => e?.label || e;

@@ -1,41 +1,57 @@
 use async_trait::async_trait;
 use sqlx::sqlite::SqlitePool;
 use tauri::AppHandle;
-use libminer::{Client, Pool};
+use libminer::{Client};
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
 use tauri::Manager;
 use std::pin::Pin;
 use std::future::Future;
 
+use db::Pool;
 use crate::models::{Miner, MinerEvent};
 use crate::db;
 use super::JobDef;
 
-async fn miner_pool(client: Client, ip: &str, mut pools: Vec<Pool>) -> Result<()> {
+async fn miner_pool(client: Client, ip: &str, mut pools: Pool, can: i64) -> Result<()> {
     if let Ok(mut miner) = client.get_miner(ip, None).await {
         if let Err(_) = miner.auth("admin", "admin").await {
             miner.auth("root", "root").await;
         }
-        let mut model = None;
-
-        // Replace any miner specific placeholders
-        // Ensure to only query the miner once for necessary values
-        for pool in &mut pools {
-            if pool.username.contains("{model}") {
-                let m = match model {
-                    Some(_) => model.as_ref().unwrap(),
-                    None => {
-                        let m = miner.get_model().await?;
-                        model = Some(m);
-                        model.as_ref().unwrap()
-                    }
-                };
-                pool.username = pool.username.replace("{model}", &m);
-            }
+        
+        let mut worker = pools.username.clone();
+        if worker.contains("{can}") {
+            worker = worker.replace("{can}", can.to_string().as_str());
         }
+        if worker.contains("{model}") {
+            worker = worker.replace("{model}", &miner.get_model().await?);
+        }
+        if worker.contains("{ip}") {
+            // Take the last 2 octets of the IP address
+            let ip = ip.split('.').collect::<Vec<&str>>();
+            let ip = format!("{}x{}", ip[ip.len() - 2], ip[ip.len() - 1]);
+            worker = worker.replace("{ip}", &ip);
+        }
+
+        let pools = [
+            libminer::Pool {
+                url: pools.url1.clone(),
+                username: worker.clone(),
+                password: pools.password.clone(),
+            },
+            libminer::Pool {
+                url: pools.url2.clone(),
+                username: worker.clone(),
+                password: pools.password.clone(),
+            },
+            libminer::Pool {
+                url: pools.url3.clone(),
+                username: worker.clone(),
+                password: pools.password.clone(),
+            },
+        ];
     
-        miner.set_pools(pools).await?;
+        miner.set_pools(pools.to_vec()).await?;
         Ok(())
     } else {
         Err(anyhow::anyhow!("Unable to connect to miner"))
@@ -44,15 +60,16 @@ async fn miner_pool(client: Client, ip: &str, mut pools: Vec<Pool>) -> Result<()
 
 #[derive(Serialize, Clone)]
 struct PoolMiner {
+    can: i64,
     rack: i64,
     row: i64,
     index: i64,
     ip: String,
-    pools: Vec<Pool>,
+    pools: Pool,
 }
 
-async fn reboot_emit(miner: PoolMiner, client: Client, app: tauri::AppHandle) -> Result<()> {
-    if let Ok(_) = miner_pool(client, &miner.ip, miner.pools.clone()).await {
+async fn pool_emit(miner: PoolMiner, client: Client, app: tauri::AppHandle) -> Result<()> {
+    if let Ok(_) = miner_pool(client, &miner.ip, miner.pools.clone(), miner.can).await {
         app.emit_all("pool", miner)?;
         Ok(())
     } else {
@@ -61,17 +78,9 @@ async fn reboot_emit(miner: PoolMiner, client: Client, app: tauri::AppHandle) ->
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SetPool {
-    pub url: String,
-    pub user: String,
-    pub pass: Option<String>,
-    pub ip_suffix: u8,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PoolJob {
     ips: Vec<String>,
-    pools: Vec<SetPool>,
+    pool: Pool,
 }
 
 #[async_trait]
@@ -88,39 +97,16 @@ impl JobDef for PoolJob {
                 let rack = miner.get_rack(db).await?;
                 let can = db::DbCan::get(db, rack.can_id).await?;
 
-                let mut pools = Vec::new();
-                for pool in &self.pools {
-                    let mut user = pool.user.clone();
-                    // Append IP suffix if we have one
-                    if pool.ip_suffix > 0 {
-                        let octets = ip.split('.').collect::<Vec<&str>>();
-                        let caps = octets.as_slice()[octets.len() - pool.ip_suffix as usize..].to_vec().join("x");
-                        // If the user doesn't end with a dot add one
-                        if !user.ends_with('.') {
-                            user.push('.');
-                        }
-                        user.push_str(&caps);
-                    }
-
-                    // Replace any placeholders
-                    user = user.replace("{can}", &can.name);
-
-                    pools.push(Pool {
-                        url: pool.url.clone(),
-                        username: user,
-                        password: pool.pass.clone(),
-                    });
-                }
-
                 let miner = PoolMiner {
+                    can: can.num,
                     rack: rack.index,
                     row: miner.row,
                     index: miner.index,
                     ip: miner.ip,
-                    pools,
+                    pools: self.pool.clone(),
                 };
                 futures.push(
-                    Box::pin(reboot_emit(miner, client.clone(), app.clone()))
+                    Box::pin(pool_emit(miner, client.clone(), app.clone()))
                     as Pin<Box<dyn Future<Output = Result<()>> + Send>>
                 );
             }

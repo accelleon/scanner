@@ -9,3 +9,5 @@ export const settings = writable({
     connectionTimeout: 10,
     readTimeout: 15,
 });
+
+export const pools = writable([]);

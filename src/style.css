@@ -48,6 +48,15 @@ button {
   outline: none;
 }
 
+button:disabled:active,
+button:disabled,
+button:disabled:hover {
+  background-color: grey;
+  color: darkgrey;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
 @keyframes blink {
   0%, 49% { 
     background-color: var(--bgcolor);

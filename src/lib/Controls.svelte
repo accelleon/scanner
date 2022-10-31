@@ -8,6 +8,11 @@
   import { bind } from "./controls/Modal.svelte";
   import { listen } from "@tauri-apps/api/event";
   import { settings } from "../stores.js";
+  import { save, type DialogFilter } from "@tauri-apps/api/dialog";
+  import type { Miner, Rack } from '../types';
+  import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
+  import PoolsDialog from "./controls/PoolsDialog.svelte";
+  import { pools } from "../stores.js";
 
   export let miners: any = undefined;
   export let selection: any[];
@@ -17,6 +22,7 @@
   let working = false;
   let progress;
   let monitor;
+  let pool;
 
   var setIntervalSynchronous = function (func, delay) {
     var intervalFunction, timeoutId, clear, cancel;
@@ -83,7 +89,7 @@
     console.log("runJob", job, args);
     if (!working) {
       working = true;
-      await invoke("run_job", { job: { job: job, ips: selection.map((m: any) => m.ip), ...args }}).finally(() => {
+      await invoke("run_job", { job: { job: job, miners: selection, ...args }}).finally(() => {
         working = false;
       });
     } else {
@@ -93,6 +99,30 @@
 
   async function settingsDialog() {
     modal.set(bind(SettingsDialog));
+  }
+
+  async function poolsDialog() {
+    modal.set(bind(PoolsDialog));
+  }
+
+  async function exportMiners() {
+    save({
+      filters: [{name: "csv", extensions: ["csv"]}],
+    }).then((path) => {
+      const headers = ["CF_Rack", "CF_Shelf", "CF_Slot", "CF_MAC Address", "ip"].join(",");
+      const contents = miners.flatMap((r: Rack, i: number) => {
+        return r.miners.flatMap((row: Miner[], y: number) => {
+          return row.map((m: Miner, x: number) => {
+            return `${i+1},${y+1},${(y*4)+x+1},${m.mac ? m.mac.toLowerCase() : ""},${m.ip}`;
+          });
+        });
+      });
+      const outfile = [headers, ...contents].join("\n");
+      writeTextFile({
+        contents: outfile,
+        path: path,
+      });
+    });
   }
 
   $: if (selected != scanned) {
@@ -125,13 +155,10 @@
     <button on:click={settingsDialog} disabled={working || monitor}>Settings</button>
   </div>
   <div class="divider" />
-  <Tabs>
-    <TabList>
-      <Tab>Controls</Tab>
-      <Tab>Pools</Tab>
-      <Tab>Tab 3</Tab>
-    </TabList>
-    <TabPanel>
+  <div class="control">
+    <div>
+      <h3>Controls</h3>
+      <hr />
       <div class="control-grid">
         <div class="control-group">
           <button disabled={control_disabled} on:click={() => runJob("Locate", {"locate": true})}>Locate On</button>
@@ -145,72 +172,29 @@
           <button disabled={control_disabled} on:click={() => runJob("Reboot")}>Reboot</button>
         </div>
       </div>
-    </TabPanel>
-    <TabPanel>
+    </div>
+    <div>
+      <h3>Pools</h3>
+      <hr />
       <div class="pool">
-        <label>
-          Pool 1:
-          <input type="text" value="tcp+stratum://btcfoundry.us:3333" />
-        </label>
-        <label>
-          Worker:
-          <input type="text" value="pc{'{'}model{'}'}." />
-        </label>
-        <label>
-          Password:
-          <input type="text" value="" />
-        </label>
-        <label>
-          IP Suffix:
-          <input type="checkbox" />
-        </label>
-        <label>
-          Pool 2:
-          <input type="text" value="tcp+stratum://btcfoundry.us:3333" />
-        </label>
-        <label>
-          Worker:
-          <input type="text" value="pc{'{'}model{'}'}." />
-        </label>
-        <label>
-          Password:
-          <input type="text" value="" />
-        </label>
-        <div />
-        <label>
-          Pool 3:
-          <input type="text" value="tcp+stratum://btcfoundry.us:3333" />
-        </label>
-        <label>
-          Worker:
-          <input type="text" value="pc{'{'}model{'}'}." />
-        </label>
-        <label>
-          Password:
-          <input type="text" value="" />
-        </label>
-        <div />
-        <button>Set All</button>
-        <button>Set Selected</button>
+        <Dropdown bind:selected={pool} options={$pools} selObject={true} labelfn={(e) => e.name} class="dropdown" />
+        <button>Update Selected</button>
+        <button on:click={() => poolsDialog()}>Edit Pools</button>
       </div>
-    </TabPanel>
-    <TabPanel>
-      <h2>Tab 3</h2>
-      <p>Tab 3 content</p>
-    </TabPanel>
-  </Tabs>
+    </div>
+  </div>
 </div>
 
 <style>
   * :global(.dropdown) {
-    width: 200px;
+    width: 100%;
     height: 3em;
     margin-bottom: 5px;
   }
 
   .divider {
     border-left: 2px solid grey;
-    height: 200px;
+    height: 100%;
     margin: 0 20px;
   }
 
@@ -235,24 +219,28 @@
   .col {
     display: flex;
     flex-direction: column;
+    min-width: 200px;
   }
 
   .col > * {
     margin-bottom: 5px;
   }
 
-  .pool {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+  h3 {
+    margin: 0;
+    margin-bottom: 5px;
   }
 
-  button:disabled:active,
-  button:disabled,
-  button:disabled:hover {
-    background-color: grey;
-    color: darkgrey;
-    cursor: not-allowed !important;
-    pointer-events: none;
+  .control {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    height: fit-content;
+  }
+
+  .control > * {
+    margin: 0 10px;
+    padding: 10px;
+    border: 1px solid grey;
   }
 
   .control-grid {
@@ -263,10 +251,20 @@
   .control-group {
     display: grid;
     margin-top: 5px;
-    grid-template-columns: auto auto;
+    grid-template-columns: 1fr 1fr;
   }
 
   .control-group > * {
     margin-right: 5px;
+  }
+
+  .pool {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .pool > * {
+    margin-bottom: 5px;
   }
 </style>

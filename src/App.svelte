@@ -9,7 +9,7 @@
   import Table from "./lib/controls/Table.svelte";
   import { round } from "./util";
   import { invoke } from "@tauri-apps/api/tauri";
-  import { settings } from "./stores.js";
+  import { settings, pools } from "./stores.js";
   import sync from 'css-animation-sync';
   
   let selected_miners: Miner[] = [];
@@ -111,6 +111,10 @@
 
     invoke("get_settings").then((res: any) => {
       settings.set(res);
+    });
+
+    invoke("get_pools").then((res: any) => {
+      pools.set(res.pools);
     });
   });
 
