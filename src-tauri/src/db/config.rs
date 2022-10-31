@@ -59,3 +59,47 @@ impl Config {
         Ok(())
     }
 }
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Pool {
+    pub name: String,
+    pub url1: String,
+    pub url2: String,
+    pub url3: String,
+    pub username: String,
+    pub password: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Pools {
+    pub pools: Vec<Pool>,
+}
+
+impl Pools {
+    pub fn new() -> Self {
+        Self {
+            pools: Vec::new(),
+        }
+    }
+
+    pub async fn load(db: &SqlitePool) -> Result<Self> {
+        let row = sqlx::query!("SELECT value FROM config WHERE key = 'pools'")
+            .fetch_one(db)
+            .await;
+        match row {
+            Err(sqlx::Error::RowNotFound) => Ok(Pools::new()),
+            Ok(row) => Ok(serde_json::from_str(&row.value)?),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn save(&self, db: &SqlitePool) -> Result<()> {
+        let serial = serde_json::to_string(self)?;
+        sqlx::query!("UPDATE config SET value = ? WHERE key = 'pools'",
+            serial
+        )
+            .execute(db)
+            .await?;
+        Ok(())
+    }
+}
