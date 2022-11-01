@@ -89,7 +89,7 @@
     console.log("runJob", job, args);
     if (!working) {
       working = true;
-      await invoke("run_job", { job: { job: job, miners: selection, ...args }}).finally(() => {
+      await invoke("run_job", { job: { job: job, ips: selection.map(m => m.ip), ...args }}).finally(() => {
         working = false;
       });
     } else {
@@ -178,7 +178,7 @@
       <hr />
       <div class="pool">
         <Dropdown bind:selected={pool} options={$pools} selObject={true} labelfn={(e) => e.name} class="dropdown" />
-        <button>Update Selected</button>
+        <button disabled={control_disabled || !pool} on:click={() => runJob("Pool", {"pool": pool})}>Update Selected</button>
         <button on:click={() => poolsDialog()}>Edit Pools</button>
       </div>
     </div>
