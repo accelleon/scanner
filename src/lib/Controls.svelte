@@ -146,7 +146,7 @@
       bind:selected
       options={cans}
       selObject={true}
-      labelfn={(e) => e.name}
+      labelfn={(e) => `${e.name} (${e.num})`}
       class="dropdown"
       disabled = {working || monitor}
     />
