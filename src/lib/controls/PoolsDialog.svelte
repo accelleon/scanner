@@ -12,7 +12,7 @@
     url1: "",
     url2: "",
     url3: "",
-    worker: "",
+    username: "",
   };
 
   function onDone() {
@@ -20,7 +20,7 @@
   }
 
   function update() {
-    return invoke("save_pools", { pools: $pools });
+    return invoke("save_pools", { pools: { pools: $pools }});
   }
 
   function onAdd() {
@@ -36,7 +36,7 @@
       url1: "",
       url2: "",
       url3: "",
-      worker: "",
+      username: "",
     };
     update();
   }
@@ -53,7 +53,7 @@
       url1: "",
       url2: "",
       url3: "",
-      worker: "",
+      username: "",
     };
     selected = null;
     update();
@@ -66,7 +66,7 @@
       url1: "",
       url2: "",
       url3: "",
-      worker: "",
+      username: "",
     };
     selected = null;
     update();
@@ -83,7 +83,7 @@
       url1: "",
       url2: "",
       url3: "",
-      worker: "",
+      username: "",
     };
     selected = null;
   }
@@ -118,11 +118,11 @@
     <div class="row">Pool 1: <input type="text" bind:value={editing.url1}/></div>
     <div class="row">Pool 2: <input type="text" bind:value={editing.url2}/></div>
     <div class="row">Pool 3: <input type="text" bind:value={editing.url3}/></div>
-    <div class="row">Worker: <input type="text" bind:value={editing.worker}/></div>
+    <div class="row">Worker: <input type="text" bind:value={editing.username}/></div>
     <div>
       {#if selected === null}
         <button
-          disabled={!editing.name || !editing.url1 || !editing.worker}
+          disabled={!editing.name || !editing.url1 || !editing.username}
           on:click={onAdd}
         >Add</button>
       {/if}
