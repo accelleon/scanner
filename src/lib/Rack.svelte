@@ -5,7 +5,7 @@
 
   export let rack: Rack = undefined;
   export let selection: any[] = undefined;
-  let ncols = rack.miners[0].length;
+  let ncols = rack.width;
 
   function selectAll(e: any) {
     let new_selection = rack.miners.flat(2).filter((miner) => miner.make);
