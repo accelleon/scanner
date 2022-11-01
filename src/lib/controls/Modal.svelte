@@ -504,7 +504,7 @@
 
   .window {
     position: relative;
-    width: 40rem;
+    width: fit-content;
     max-width: 100%;
     max-height: 100%;
     margin: 2rem auto;
