@@ -89,8 +89,9 @@ impl Pools {
         match row {
             Err(sqlx::Error::RowNotFound) => {
                 let default = Pools::new();
+                let serial = serde_json::to_string(&default)?;
                 sqlx::query!("INSERT INTO config (key, value) VALUES ('pools', ?)",
-                    serde_json::to_string(&default)?
+                    serial
                 )
                     .execute(db)
                     .await?;
