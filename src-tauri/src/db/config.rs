@@ -87,7 +87,15 @@ impl Pools {
             .fetch_one(db)
             .await;
         match row {
-            Err(sqlx::Error::RowNotFound) => Ok(Pools::new()),
+            Err(sqlx::Error::RowNotFound) => {
+                let default = Pools::new();
+                sqlx::query!("INSERT INTO config (key, value) VALUES ('pools', ?)",
+                    serde_json::to_string(&default)?
+                )
+                    .execute(db)
+                    .await?;
+                Ok(default)
+            },
             Ok(row) => Ok(serde_json::from_str(&row.value)?),
             Err(e) => Err(e.into()),
         }
