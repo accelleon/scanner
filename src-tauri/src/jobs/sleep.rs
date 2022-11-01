@@ -8,38 +8,13 @@ use tauri::Manager;
 use std::pin::Pin;
 use std::future::Future;
 
-use crate::models::{Miner, MinerEvent};
 use crate::db;
 use super::JobDef;
+use super::Miner;
 
-async fn set_sleep(client: Client, ip: &str, sleep: bool) -> Result<()> {
-    if let Ok(mut miner) = client.get_miner(ip, None).await {
-        if let Err(_) = miner.auth("admin", "admin").await {
-            miner.auth("root", "root").await;
-        }
-        miner.set_sleep(sleep).await?;
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Unable to connect to miner"))
-    }
-}
-
-#[derive(Serialize, Clone)]
-struct SleepMiner {
-    rack: i64,
-    row: i64,
-    index: i64,
-    ip: String,
-    sleep: bool,
-}
-
-async fn sleep_emit(miner: SleepMiner, client: Client, app: tauri::AppHandle) -> Result<()> {
-    if let Ok(_) = set_sleep(client, &miner.ip, miner.sleep).await {
-        app.emit_all("sleep", miner)?;
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("Unable to set sleep miner"))
-    }
+async fn set_sleep(miner: Miner, sleep: bool) -> Result<()> {
+    miner.set_sleep(sleep).await?;
+    Ok(())
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -58,17 +33,9 @@ impl JobDef for SleepJob {
     ) -> Result<Vec<Pin<Box<dyn Future<Output = Result<()>> + Send>>>> {
         let mut futures = Vec::new();
         for ip in &self.ips {
-            if let miner = db::DbMiner::find_ip(db, ip).await? {
-                let rack = miner.get_rack(db).await?;
-                let miner = SleepMiner {
-                    rack: rack.index,
-                    row: miner.row,
-                    index: miner.index,
-                    ip: miner.ip,
-                    sleep: self.sleep,
-                };
+            if let Ok(miner) = Miner::new(ip.clone(), db, client.clone(), app.clone()).await {
                 futures.push(
-                    Box::pin(sleep_emit(miner, client.clone(), app.clone()))
+                    Box::pin(set_sleep(miner, self.sleep))
                     as Pin<Box<dyn Future<Output = Result<()>> + Send>>
                 );
             }
