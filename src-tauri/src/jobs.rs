@@ -18,6 +18,8 @@ mod locate;
 mod reboot;
 mod pool;
 mod sleep;
+mod miner;
+pub use miner::Miner;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Progress {
@@ -120,9 +122,10 @@ impl JobRunner {
             futures.push(
                 tokio::spawn(async move {
                     tokio::select! {
-                        _ = cancel.recv() => {}
-                        _ = task => {
+                        _ = cancel.recv() => {Ok(())}
+                        res = task => {
                             progress.lock().await.increment().unwrap();
+                            res
                         }
                     }
                 })
@@ -130,8 +133,15 @@ impl JobRunner {
         }
 
         for future in futures {
-            if let Err(e) = future.await {
-                println!("Error: {}", e);
+            match future.await {
+                Ok(res) => {
+                    if let Err(e) = res {
+                        eprintln!("Error: {}", e);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to join: {:?}", e);
+                }
             }
         }
 
