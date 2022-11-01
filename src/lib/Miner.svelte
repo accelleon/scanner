@@ -69,12 +69,11 @@
       event.preventDefault();
       event.stopPropagation();
       if (group) {
-        updateGroup(!selected, miner);
+        updateGroup(!selected, miner.ip);
       }
     } else {
-      group = [miner];
+      group = [miner.ip];
     }
-    console.log(group);
   }
 
   function onDblClick(event) {
@@ -84,7 +83,7 @@
     open("http://" + miner.ip);
   }
 
-  $: group && updateCheckbox(group, miner);
+  $: group && updateCheckbox(group, miner.ip);
   $: color = miner.make ? (miner.sleep ? "black" : (miner.hashrate > 0 ? "green" : "red")) : "#ddd";
   $: disabled = !miner.make;
 </script>

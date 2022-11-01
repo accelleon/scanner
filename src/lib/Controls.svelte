@@ -89,7 +89,7 @@
     console.log("runJob", job, args);
     if (!working) {
       working = true;
-      await invoke("run_job", { job: { job: job, ips: selection.map(m => m.ip), ...args }}).finally(() => {
+      await invoke("run_job", { job: { job: job, ips: selection, ...args }}).finally(() => {
         working = false;
       });
     } else {

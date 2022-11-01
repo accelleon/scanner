@@ -8,7 +8,7 @@
   let ncols = rack.width;
 
   function selectAll(e: any) {
-    let new_selection = rack.miners.flat(2).filter((miner) => miner.make);
+    let new_selection = rack.miners.flat(2).filter((miner) => miner.make).map((miner) => miner.ip);
     // if ctrl is held we want to add/remove
     // otherwise toggle it
     if (e.ctrlKey) {

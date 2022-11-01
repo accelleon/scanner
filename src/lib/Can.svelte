@@ -14,21 +14,24 @@
     selection = miners
       .map((rack) => rack.miners)
       .flat(2)
-      .filter((miner) => !miner.hashrate && miner.make);
+      .filter((miner) => !miner.hashrate && miner.make)
+      .map((miner) => miner.ip);
   }
 
   function selectSleeping() {
     selection = miners
       .map((rack) => rack.miners)
       .flat(2)
-      .filter((miner) => miner.sleep && miner.make);
+      .filter((miner) => miner.sleep && miner.make)
+      .map((miner) => miner.ip);
   }
 
   function selectAll() {
     selection = miners
       .map((rack) => rack.miners)
       .flat(2)
-      .filter((miner) => miner.make);
+      .filter((miner) => miner.make)
+      .map((miner) => miner.ip);
   }
 
   function format_hashrate(ths) {
