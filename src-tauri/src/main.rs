@@ -17,7 +17,7 @@ mod db;
 mod frontier;
 mod jobs;
 mod models;
-use db::{Config, Pools};
+use db::{Config, Pools, MinerAuth, Auth};
 use models::Can;
 
 struct JobState {
@@ -139,6 +139,16 @@ async fn save_pools(pools: Pools, db: State<'_, SqlitePool>) -> Result<(), Strin
     pools.save(&db).await.map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn get_miner_auth(db: State<'_, SqlitePool>) -> Result<Vec<Auth>, String> {
+    Ok(MinerAuth::load(&db).await.map_err(|e| e.to_string())?.auths)
+}
+
+#[tauri::command]
+async fn save_miner_auth(auths: Vec<Auth>, db: State<'_, SqlitePool>) -> Result<(), String> {
+    MinerAuth { auths }.save(&db).await.map_err(|e| e.to_string())
+}
+
 async fn main_async() {
     tracing_subscriber::fmt::init();
 
@@ -169,6 +179,8 @@ async fn main_async() {
             get_settings,
             get_pools,
             save_pools,
+            get_miner_auth,
+            save_miner_auth
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

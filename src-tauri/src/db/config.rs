@@ -112,3 +112,53 @@ impl Pools {
         Ok(())
     }
 }
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Auth {
+    pub make: String,
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct MinerAuth {
+    pub auths: Vec<Auth>,
+}
+
+impl MinerAuth {
+    pub async fn load(db: &SqlitePool) -> Result<Self> {
+        let row = sqlx::query!("SELECT value FROM config WHERE key = 'miner_auth'")
+            .fetch_one(db)
+            .await;
+        match row {
+            Err(sqlx::Error::RowNotFound) => {
+                let default = MinerAuth {
+                    auths: Vec::new(),
+                };
+                let serial = serde_json::to_string(&default)?;
+                sqlx::query!("INSERT INTO config (key, value) VALUES ('miner_auth', ?)",
+                    serial
+                )
+                    .execute(db)
+                    .await?;
+                Ok(default)
+            },
+            Ok(row) => Ok(serde_json::from_str(&row.value)?),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn save(&self, db: &SqlitePool) -> Result<()> {
+        let serial = serde_json::to_string(self)?;
+        sqlx::query!("UPDATE config SET value = ? WHERE key = 'miner_auth'",
+            serial
+        )
+            .execute(db)
+            .await?;
+        Ok(())
+    }
+
+    pub fn get(&self, make: &str) -> Vec<&Auth> {
+        self.auths.iter().filter(|a| a.make.eq_ignore_ascii_case(make)).collect()
+    }
+}
