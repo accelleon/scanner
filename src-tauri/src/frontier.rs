@@ -42,9 +42,6 @@ pub async fn import_sitemap(db: &SqlitePool, layout: String, sitemap: String) ->
     sqlx::query("DELETE FROM racks").execute(db).await?;
     sqlx::query("DELETE FROM cans").execute(db).await?;
 
-    print!("Layout file: {}", layout);
-    print!("Sitemap file: {}", sitemap);
-
     info!("Importing sitemap");
     // Parse layout csv file first
     let mut rdr = csv::ReaderBuilder::new()
