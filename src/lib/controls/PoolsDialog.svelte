@@ -139,7 +139,7 @@
       Worker names may contain placeholders to be filled in with miner details:
     </p>
       <ul>
-        <li><code>{`{can}`}</code> - Currently selected can name</li>
+        <li><code>{`{can}`}</code> - Currently selected can number</li>
         <li><code>{`{model}`}</code> - Miner's model</li>
         <li><code>{`{ip}`}</code> - Last 2 octets of the miner's IP address (e.g. 4x126)</li>
       </ul>
