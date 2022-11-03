@@ -4,11 +4,9 @@ use tauri::AppHandle;
 use libminer::Client;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
-use tauri::Manager;
 use std::pin::Pin;
 use std::future::Future;
 
-use crate::db;
 use super::JobDef;
 use super::Miner;
 

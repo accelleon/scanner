@@ -5,10 +5,9 @@
 
 use db::DbCan;
 use jobs::Job;
-use serde::Serialize;
-use libminer::{ClientBuilder, Client, Pool};
+use libminer::{ClientBuilder, Client};
 use sqlx::sqlite::SqlitePool;
-use tauri::{State, Manager};
+use tauri::State;
 use anyhow::Result;
 use tokio::sync::Mutex;
 use tokio::sync::broadcast;

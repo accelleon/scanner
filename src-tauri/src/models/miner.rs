@@ -1,6 +1,5 @@
 use serde::Serialize;
 use crate::db::DbCan;
-use libminer::Pool;
 use crate::jobs::Miner;
 
 #[derive(Serialize)]

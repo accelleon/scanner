@@ -4,8 +4,6 @@ use csv;
 use sqlx::sqlite::SqlitePool;
 use tracing::info;
 
-use crate::db::{DbRack, DbMiner, DbCan};
-
 #[derive(Deserialize)]
 struct SitemapRecord {
     pickaxe_id: String,

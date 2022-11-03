@@ -3,16 +3,9 @@ use tauri::{AppHandle, Manager};
 use sqlx::sqlite::SqlitePool;
 use anyhow::Result;
 
+use crate::models::MinerEvent;
 use libminer::Client;
 use crate::db;
-
-#[derive(Serialize, Debug, Clone)]
-pub struct MinerEvent {
-    pub rack: i64,
-    pub row: i64,
-    pub index: i64,
-    pub miner: Miner,
-}
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Miner {
