@@ -90,25 +90,6 @@
       animation = sync('blink');
     });
 
-    let unlisten2 = listen("locate", (e: any) => {
-      let miner = e.payload;
-      miners[miner.rack].miners[miner.row][miner.index].locate = miner.locate;
-      if (animation) {
-        animation.free()
-      }
-      animation = sync('blink');
-    });
-
-    let unlisten3 = listen("reboot", (e: any) => {
-      let miner = e.payload;
-      // Remove the miner from the selection
-      selected_miners = selected_miners.filter(
-        (m) => m.ip !== miner.ip
-      );
-      // Mark it empty
-      miners[miner.rack].miners[miner.row][miner.index].make = "";
-    });
-
     invoke("get_settings").then((res: any) => {
       settings.set(res);
     });
