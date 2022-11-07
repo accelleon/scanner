@@ -1,13 +1,19 @@
+export type Pool = {
+  url: string;
+  user: string;
+};
+
 export type Miner = {
   ip: string;
   make?: string;
   model?: string;
+  mac?: string;
   hashrate?: number;
   temp?: number;
   fan?: number[];
   uptime?: number;
-  mac?: string;
   errors?: string[];
+  pools?: Pool[];
   sleep?: boolean;
   locate?: boolean;
 };
