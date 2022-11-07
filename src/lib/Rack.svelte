@@ -5,7 +5,6 @@
 
   export let rack: Rack = undefined;
   export let selection: any[] = undefined;
-  let ncols = rack.width;
 
   function selectAll(e: any) {
     let new_selection = rack.miners.flat(2).filter((miner) => miner.make).map((miner) => miner.ip);
@@ -33,7 +32,7 @@
 
 <div class="container" on:dblclick={selectAll}>
   {rack.name}
-  <div class="grid" style="--ncols: {ncols}">
+  <div class="grid" style="--ncols: {rack.width}">
     {#each rack.miners as row}
       {#each row as miner}
         <Miner bind:group={selection} {miner} />
