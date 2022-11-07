@@ -118,7 +118,6 @@ impl Miner {
             let auths = self.auths.get(self.make.as_ref().unwrap());
             let mut authed = false;
             for auth in auths {
-                println!("Trying auth: {:?}", auth);
                 if let Ok(_) = miner.auth(&auth.username, &auth.password).await {
                     authed = true;
                     break;
