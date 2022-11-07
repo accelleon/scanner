@@ -110,7 +110,12 @@
 </script>
 
 <main class="container">
-  <Modal show={$modal} />
+  <Modal
+    show={$modal}
+    closeButton={false}
+    closeOnEsc={false}
+    closeOnOuterClick={false}
+  />
   <Controls bind:miners selection={selected_miners}/>
   <Can {miners} bind:selection={selected_miners} />
   <Table
