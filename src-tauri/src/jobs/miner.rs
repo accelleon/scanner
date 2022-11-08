@@ -1,13 +1,11 @@
-use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use sqlx::sqlite::SqlitePool;
 use anyhow::Result;
 
-use crate::models::MinerEvent;
+use crate::models::{MinerEvent, self};
 use libminer::Client;
 use crate::db;
 
-#[derive(Serialize, Debug, Clone)]
 pub struct Miner {
     pub ip: String,
     pub make: Option<String>,
@@ -21,19 +19,12 @@ pub struct Miner {
     pub pools: Vec<libminer::Pool>,
     pub sleep: bool,
     pub locate: bool,
-    #[serde(skip)]
     pub client: Client,
-    #[serde(skip)]
     pub app: AppHandle,
-    #[serde(skip)]
     pub auths: db::MinerAuth,
-    #[serde(skip)]
     pub can: i64,
-    #[serde(skip)]
     pub rack: i64,
-    #[serde(skip)]
     pub row: i64,
-    #[serde(skip)]
     pub index: i64,
 }
 
@@ -86,8 +77,8 @@ impl Miner {
             temp: None,
             fan: None,
             uptime: None,
-            errors: vec![],
-            pools: vec![],
+            errors: Vec::new(),
+            pools: Vec::new(),
             sleep: false,
             locate: false,
             client,
@@ -105,7 +96,20 @@ impl Miner {
             rack: self.rack,
             row: self.row,
             index: self.index,
-            miner: self.clone(),
+            miner: models::Miner {
+                ip: self.ip.clone(),
+                make: self.make.clone(),
+                model: self.model.clone(),
+                mac: self.mac.clone(),
+                hashrate: self.hashrate,
+                temp: self.temp,
+                fan: self.fan.clone(),
+                uptime: self.uptime,
+                errors: self.errors.clone(),
+                pools: self.pools.clone(),
+                sleep: self.sleep,
+                locate: self.locate,
+            },
         };
         self.app.emit_all("miner", event)?;
         Ok(())

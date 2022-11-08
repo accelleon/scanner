@@ -1,6 +1,5 @@
 use serde::Serialize;
 use crate::db::DbCan;
-use crate::jobs::Miner;
 
 #[derive(Serialize)]
 pub struct Can {
@@ -25,6 +24,22 @@ pub struct Rack {
     pub width: i64,
     pub height: i64,
     pub miners: Vec<Vec<Miner>>,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct Miner {
+    pub ip: String,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub mac: Option<String>,
+    pub hashrate: Option<f64>,
+    pub temp: Option<f64>,
+    pub fan: Option<Vec<u32>>,
+    pub uptime: Option<f64>,
+    pub errors: Vec<String>,
+    pub pools: Vec<libminer::Pool>,
+    pub sleep: bool,
+    pub locate: bool,
 }
 
 #[derive(Serialize, Debug, Clone)]
