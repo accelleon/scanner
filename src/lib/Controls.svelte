@@ -13,6 +13,7 @@
   import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
   import PoolsDialog from "./controls/PoolsDialog.svelte";
   import { pools } from "../stores.js";
+  import Validation from "./controls/Validation.svelte";
 
   export let miners: any = undefined;
   export let selection: any[];
@@ -105,15 +106,21 @@
     modal.set(bind(PoolsDialog));
   }
 
+  async function validationDialog() {
+    modal.set(bind(Validation, { racks: miners }));
+  }
+
   async function exportMiners() {
     save({
       filters: [{name: "csv", extensions: ["csv"]}],
     }).then((path) => {
-      const headers = ["CF_Rack", "CF_Shelf", "CF_Slot", "CF_MAC Address", "ip"].join(",");
+      const headers = ["IP", "Rack", "Shelf", "Slot", "Make", "Model", "CF_MAC Address", "Worker", "Pool1", "Pool2", "Pool3"].join(",");
       const contents = miners.flatMap((r: Rack, i: number) => {
         return r.miners.flatMap((row: Miner[], y: number) => {
           return row.map((m: Miner, x: number) => {
-            return `${i+1},${y+1},${(y*4)+x+1},${m.mac ? m.mac.toLowerCase() : ""},${m.ip}`;
+            return m.make ? 
+              `${m.ip},${i+1},${y+1},${(y*4)+x+1},${m.make},${m.model},${m.mac ? m.mac.toLowerCase() : ""},${m.pools[0].user},${m.pools[0].url},${m.pools[1].url},${m.pools[2].url}`
+              : `${m.ip},${i+1},${y+1},${(y*4)+x+1},,,,,,,`;
           });
         });
       });
@@ -180,6 +187,14 @@
         <Dropdown bind:selected={pool} options={$pools} selObject={true} labelfn={(e) => e.name} class="dropdown" />
         <button disabled={control_disabled || !pool} on:click={() => runJob("Pool", {"pool": pool})}>Update Selected</button>
         <button on:click={() => poolsDialog()}>Edit Pools</button>
+      </div>
+    </div>
+    <div>
+      <h3>Tools</h3>
+      <hr />
+      <div class="col">
+        <button on:click={() => validationDialog()}>Location Validation</button>
+        <button on:click={() => exportMiners()}>Export Miners</button>
       </div>
     </div>
   </div>
