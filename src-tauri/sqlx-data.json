@@ -1,0 +1,581 @@
+{
+  "db": "SQLite",
+  "16ebb1273d3357b29004f02f362e8870ea7bc1c9d48906f6249fb44bec25de23": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "num",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, num, name FROM cans WHERE id = ?"
+  },
+  "1bc8c124d341ef9f7e18a134a05e186194d51380da4c6dd6042c7e0693c82151": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n            SELECT id FROM racks WHERE name = ?\n            "
+  },
+  "1d667d60cb41e32d65dd311a520d3015750df68c14b86eb1200bce9d9d9bd8ad": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "\n            INSERT INTO miners (ip, rack_id, row, index_)\n            VALUES (?, ?, ?, ?)\n            "
+  },
+  "1df6a2edb37bb4cac62d002c7bf9aa4feb19b17ebb4938c53a7eee70987ff9d2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "INSERT INTO miners (rack_id, ip, row, index_) VALUES (?, ?, ?, ?)"
+  },
+  "201f9772de77620bc5920f62c5b540b4336623b182e8555430128a50f8b59374": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "rack_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "ip",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "row",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "index_",
+          "ordinal": 4,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT id, rack_id, ip, row, index_ FROM miners"
+  },
+  "273e808f41ffc039c1b324988e061a63e848b6dd9d9c84ceb370f4c2c2da5401": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "rack_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "ip",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "row",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "index_",
+          "ordinal": 4,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, rack_id, ip, row, index_ FROM miners WHERE ip = ?"
+  },
+  "315e23cbbe41a7f11914848015fc0900b2ef268188b3095f63e47d474fd47e21": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "INSERT INTO config (key, value) VALUES ('pools', ?)"
+  },
+  "33a931300591d0ffdf2ce04969f4fda7bb0132cc27de85b4ab81af8cf6f4913e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "UPDATE config SET value = ? WHERE key = 'miner_auth'"
+  },
+  "3c05d7999a53086f211d65f5a3ffbae717553edbb07f3068b1f60329681527e1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "value",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT value FROM config WHERE key = 'pools'"
+  },
+  "4d946746abe43dc995d88b4d7fcb1829f533ed68e762bf79d826ee52d5e482ec": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "num",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT id, num, name FROM cans"
+  },
+  "50f284dbc77a4b5ed4e540332f42dd33e94c93b00cefc455111633f530922cf4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "version",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT version FROM version"
+  },
+  "6235c6de1792d28fac4710b385565550124818c0c19ee36bc8d908850d08322e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "can_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "index_",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "width",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "height",
+          "ordinal": 5,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, can_id, name, index_, width, height FROM racks WHERE can_id = ? ORDER BY index_"
+  },
+  "73cf0093d471c6a16f94fc759ee5465233fa1349d86ecd7928f5f470a5372e77": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n                    SELECT id FROM cans WHERE name = ?\n                    "
+  },
+  "8147a775561261c509cdcd8fbd98d9324d20300e395116af009185f0e30c6696": {
+    "describe": {
+      "columns": [
+        {
+          "name": "value",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT value FROM config WHERE key = 'config'"
+  },
+  "88f08771b2ccc7652842277344a3862676b62541c30547368bd76bfa9c9cda8b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "num",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, num, name FROM cans WHERE name = ?"
+  },
+  "8cba8a4255ce0d15c5f66b74e3ffd51198bb3cc74ebd38f7ef9c7f2a924b5f35": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "INSERT INTO config (key, value) VALUES ('miner_auth', ?)"
+  },
+  "9ebc86a45ca4b89256cc506b3bee57effc5225d56bbde7249ccbff8786451816": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "UPDATE config SET value = ? WHERE key = 'config'"
+  },
+  "a14b1ae4926b943c49867c2179fdc5f8edcab5cc75bb3cf03b22711a127b304c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "\n                    INSERT INTO racks (name, index_, width, height, can_id)\n                    VALUES (?, ?, ?, ?, ?)\n                    "
+  },
+  "ba22903b0f9948a10cd5041ae277d7a2d329ccff9cde355bd378c57a7a828c9a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "UPDATE config SET value = ? WHERE key = 'pools'"
+  },
+  "c99c5f46fbc587ab556cbdfb1ced7c665b87417cee954adb1e92fb437510f618": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "rack_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "ip",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "row",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "index_",
+          "ordinal": 4,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, rack_id, ip, row, index_ FROM miners WHERE rack_id = ? ORDER BY row, index_"
+  },
+  "ca174fdde37fabe7111f940c77f27994f7733181568e776f1cb55df424fe71c5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "can_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "index_",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "width",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "height",
+          "ordinal": 5,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT id, can_id, index_, name, width, height FROM racks"
+  },
+  "cb12702d6b4d9f5ee0707dc8aef3655c6585f18aa9499845e09ddbe47987e4d2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "CREATE TABLE IF NOT EXISTS config (\n                    id INTEGER PRIMARY KEY NOT NULL,\n                    key TEXT NOT NULL UNIQUE,\n                    value TEXT NOT NULL\n                );"
+  },
+  "d065602539cd4a9c3a72448e724f75495010c38358cd20fa16dbba0f4a0ef2c7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "value",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT value FROM config WHERE key = 'miner_auth'"
+  },
+  "d281c7aeecf166d4a0e0c29c5384b8f3ad3dd9b25d4ee25222950d0226fa7c02": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "INSERT INTO config (key, value) VALUES ('config', ?)"
+  },
+  "dcc182aa4313a09c4d934d264ee3cbbddf683c3ad9a2e0acc73e3bc257136768": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "\n                    INSERT INTO cans (name, num)\n                    VALUES (?, ?)\n                    "
+  },
+  "f4d73b2a0c480bbdc7b6f0ca3c71dc57fb342c8d3cb79548c8454df9393f014f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "can_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "index_",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "width",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "height",
+          "ordinal": 5,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, can_id, name, index_, width, height FROM racks WHERE id = ?"
+  }
+}
