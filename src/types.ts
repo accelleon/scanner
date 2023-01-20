@@ -16,6 +16,7 @@ export type Miner = {
   pools?: Pool[];
   sleep?: boolean;
   locate?: boolean;
+  power?: number;
 };
 
 export type Rack = {

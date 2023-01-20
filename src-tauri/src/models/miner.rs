@@ -38,6 +38,7 @@ pub struct Miner {
     pub uptime: Option<f64>,
     pub errors: Vec<String>,
     pub pools: Vec<libminer::Pool>,
+    pub power: Option<f64>,
     pub sleep: bool,
     pub locate: bool,
 }

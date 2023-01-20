@@ -17,6 +17,7 @@ pub struct Miner {
     pub uptime: Option<f64>,
     pub errors: Vec<String>,
     pub pools: Vec<libminer::Pool>,
+    pub power: Option<f64>,
     pub sleep: bool,
     pub locate: bool,
     pub client: Client,
@@ -50,6 +51,7 @@ impl Miner {
             uptime: None,
             errors: Vec::new(),
             pools: Vec::new(),
+            power: None,
             sleep: false,
             locate: false,
             client,
@@ -79,6 +81,7 @@ impl Miner {
             uptime: None,
             errors: Vec::new(),
             pools: Vec::new(),
+            power: None,
             sleep: false,
             locate: false,
             client,
@@ -103,6 +106,7 @@ impl Miner {
                 mac: self.mac.clone(),
                 hashrate: self.hashrate,
                 temp: self.temp,
+                power: self.power,
                 fan: self.fan.clone(),
                 uptime: self.uptime,
                 errors: self.errors.clone(),
@@ -139,12 +143,14 @@ impl Miner {
     pub async fn load(&mut self) -> Result<()> {
         if let Ok(mut miner) = self.get_miner().await {
             self.model = Some(miner.get_model().await.unwrap_or("Unknown".to_string()));
+            println!("{:?}", miner.get_hashrate().await);
             self.hashrate = Some(miner.get_hashrate().await.unwrap_or(0.0));
             self.temp = miner.get_temperature().await.ok();
             self.fan = miner.get_fan_speed().await.ok();
             self.mac = Some(miner.get_mac().await.unwrap_or("Unknown".to_string()));
             self.locate = miner.get_blink().await.unwrap_or(false);
             self.pools = miner.get_pools().await.unwrap_or(vec![]);
+            self.power = miner.get_power().await.ok();
             if self.hashrate == Some(0.0) {
                 // Try to get errors up to 3 times
                 for _ in 0..3 {
@@ -156,6 +162,13 @@ impl Miner {
             }
             if !self.pools.is_empty() && self.pools[0].url.is_empty() {
                 self.errors.push("No pool set".to_string());
+            } else if self.pools.is_empty() {
+                // Hackfix for the front end JS
+                self.pools = vec![
+                    libminer::Pool::default(),
+                    libminer::Pool::default(),
+                    libminer::Pool::default()
+                ];
             }
             // Lastly check if miner is sleeping
             if let Ok(sleep) = miner.get_sleep().await {

@@ -121,6 +121,10 @@
           <div class="tooltip-value">{round(miner.hashrate, 2)} TH/s</div>
         </div>
         <div class="tooltip-row">
+          <div class="tooltip-label">Power</div>
+          <div class="tooltip-value">{round(miner.power, 2)} W</div>
+        </div>
+        <div class="tooltip-row">
           <div class="tooltip-label">Temp</div>
           <div class="tooltip-value">{round(miner.temp, 2)} °C</div>
         </div>
