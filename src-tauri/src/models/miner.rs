@@ -41,6 +41,7 @@ pub struct Miner {
     pub power: Option<f64>,
     pub sleep: bool,
     pub locate: bool,
+    pub nameplate: Option<f64>,
 }
 
 #[derive(Serialize, Debug, Clone)]

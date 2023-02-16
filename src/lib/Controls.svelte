@@ -1,29 +1,29 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Dropdown from "./controls/Dropdown.svelte";
-  import { Tabs, TabList, TabPanel, Tab } from "./controls/tabs/tabs.js";
   import { invoke } from "@tauri-apps/api/tauri";
   import SettingsDialog from "./controls/SettingsDialog.svelte";
   import { modal } from "../stores.js";
   import { bind } from "./controls/Modal.svelte";
   import { listen } from "@tauri-apps/api/event";
   import { settings } from "../stores.js";
-  import { save, type DialogFilter } from "@tauri-apps/api/dialog";
+  import { open, save } from "@tauri-apps/api/dialog";
   import type { Miner, Rack } from '../types';
-  import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
+  import { writeTextFile } from '@tauri-apps/api/fs';
   import PoolsDialog from "./controls/PoolsDialog.svelte";
   import { pools } from "../stores.js";
   import Validation from "./controls/Validation.svelte";
 
   export let miners: any = undefined;
   export let selection: any[];
+  export let pool: any = undefined;
+  export let selected;
+
   let cans = [];
-  let selected;
   let scanned;
   let working = false;
   let progress;
   let monitor;
-  let pool;
 
   var setIntervalSynchronous = function (func, delay) {
     var intervalFunction, timeoutId, clear, cancel;
@@ -132,6 +132,14 @@
     });
   }
 
+  async function exportLogs() {
+    open({
+      directory: true,
+    }).then((path) => {
+      runJob("Log", { path: path });
+    });
+  }
+
   $: if (selected != scanned) {
     scanned = false;
     invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
@@ -193,8 +201,9 @@
       <h3>Tools</h3>
       <hr />
       <div class="col">
-        <button on:click={() => validationDialog()}>Location Validation</button>
-        <button on:click={() => exportMiners()}>Export Miners</button>
+        <button disabled={monitor || working || !scanned} on:click={() => validationDialog()}>Location Validation</button>
+        <button disabled={working || !scanned} on:click={() => exportMiners()}>Export Miners</button>
+        <button disabled={control_disabled} on:click={() => exportLogs()}>Export Logs</button>
       </div>
     </div>
   </div>

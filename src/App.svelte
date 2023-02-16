@@ -15,6 +15,8 @@
   let selected_miners: Miner[] = [];
   let miners: any = [];
   let tab_miners: any = [];
+  let pool: any = undefined;
+  let can: any = undefined;
 
   let animation;
 
@@ -116,8 +118,8 @@
     closeOnEsc={false}
     closeOnOuterClick={false}
   />
-  <Controls bind:miners selection={selected_miners}/>
-  <Can {miners} bind:selection={selected_miners} />
+  <Controls bind:miners selection={selected_miners} bind:pool bind:selected={can}/>
+  <Can {miners} {pool} bind:selection={selected_miners} {can}/>
   <Table
     {columns}
     data={tab_miners}

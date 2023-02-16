@@ -5,6 +5,8 @@
 
   export let miners: TRack[] = undefined;
   export let selection: any[] = undefined;
+  export let pool: any = undefined;
+  export let can: any = undefined;
 
   let detected;
   let hashing;
@@ -70,7 +72,7 @@
   </p>
   <div class="grid" style="--nracks: {miners.length}">
     {#each miners as rack}
-      <Rack bind:selection {rack} />
+      <Rack bind:selection {rack} {pool} {can}/>
     {/each}
   </div>
   <div class="footer">
@@ -88,6 +90,10 @@
       <div class="legend-item">
         <div class="miner" style="--bgcolor: green;"></div>
         <div class="legend-text">Hashing</div>
+      </div>
+      <div class="legend-item">
+        <div class="miner" style="--bgcolor: orange;"></div>
+        <div class="legend-text">Hashing with Error</div>
       </div>
       <div class="legend-item">
         <div class="miner" style="--bgcolor: red;"></div>

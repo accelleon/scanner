@@ -7,6 +7,8 @@
   export let miner: Miner = undefined;
   export let disabled: Boolean = false;
   export let group: any[] = undefined;
+  export let pool: any = undefined;
+  export let can: any = undefined;
 
   let isHovered = false;
   let x = undefined;
@@ -14,6 +16,41 @@
   let selected = false;
 
   let color = "gray";
+
+  function format_worker(worker: string) {
+    worker = worker.replace("{can}", can.num);
+    worker = worker.replace("{model}", miner.model.toLowerCase());
+    // Build an ip suffix
+    let ip = miner.ip.split(".");
+    let suffix = `${ip[2]}x${ip[3]}`;
+    worker = worker.replace("{ip}", suffix);
+    return worker;
+  }
+
+  function check_pool() {
+    if (pool && miner.pools && miner.pools.length == 3) {
+      let worker = format_worker(pool.username);
+      if (miner.pools[0].url != pool.url1 || miner.pools[0].user != worker) {
+        return false;
+      }
+      if (miner.pools[1].url != pool.url2 || miner.pools[1].user != worker) {
+        return false;
+      }
+      if (miner.pools[2].url != pool.url3 || miner.pools[2].user != worker) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function update_pool() {
+    if (miner.errors.find((e) => e.includes("pools"))) {
+      miner.errors = miner.errors.filter((e) => !e.includes("pools"));
+    }
+    if (!check_pool()) {
+      miner.errors.push("Incorrect pools");
+    }
+  }
 
   function locate(ex: number, ey: number) {
     var tooltip = document.querySelectorAll(".tooltip")[0];
@@ -84,7 +121,8 @@
   }
 
   $: group && updateCheckbox(group, miner.ip);
-  $: color = miner.make ? (miner.sleep ? "black" : (miner.hashrate > 0 ? "green" : "red")) : "#ddd";
+  $: if (miner.pools && pool) update_pool();
+  $: color = miner.make ? (miner.sleep ? "black" : (miner.hashrate > 0 ? (miner.errors.length > 0 || (pool && miner.pools && !check_pool()) ? "orange" : "green") : "red")) : "#ddd";
   $: disabled = !miner.make;
 </script>
 

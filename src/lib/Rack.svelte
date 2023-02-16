@@ -5,6 +5,8 @@
 
   export let rack: Rack = undefined;
   export let selection: any[] = undefined;
+  export let pool: any = undefined;
+  export let can: any = undefined;
 
   function selectAll(e: any) {
     let new_selection = rack.miners.flat(2).filter((miner) => miner.make).map((miner) => miner.ip);
@@ -35,7 +37,7 @@
   <div class="grid" style="--ncols: {rack.width}">
     {#each rack.miners as row}
       {#each row as miner}
-        <Miner bind:group={selection} {miner} />
+        <Miner bind:group={selection} {miner} {pool} {can}/>
       {/each}
     {/each}
   </div>

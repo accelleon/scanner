@@ -19,6 +19,7 @@ mod reboot;
 mod pool;
 mod sleep;
 mod miner;
+mod logs;
 pub use miner::Miner;
 
 #[derive(Serialize, Debug, Clone)]
@@ -76,6 +77,7 @@ pub enum Job {
     Reboot(reboot::RebootJob),
     Pool(pool::PoolJob),
     Sleep(sleep::SleepJob),
+    Log(logs::LogJob),
 }
 
 impl Deref for Job {
@@ -88,6 +90,7 @@ impl Deref for Job {
             Job::Reboot(job) => job,
             Job::Pool(job) => job,
             Job::Sleep(job) => job,
+            Job::Log(job) => job,
         }
     }
 }

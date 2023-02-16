@@ -17,6 +17,7 @@ pub struct Miner {
     pub uptime: Option<f64>,
     pub errors: Vec<String>,
     pub pools: Vec<libminer::Pool>,
+    pub nameplate: Option<f64>,
     pub power: Option<f64>,
     pub sleep: bool,
     pub locate: bool,
@@ -54,6 +55,7 @@ impl Miner {
             power: None,
             sleep: false,
             locate: false,
+            nameplate: None,
             client,
             app,
             auths,
@@ -84,6 +86,7 @@ impl Miner {
             power: None,
             sleep: false,
             locate: false,
+            nameplate: None,
             client,
             app,
             auths,
@@ -113,6 +116,7 @@ impl Miner {
                 pools: self.pools.clone(),
                 sleep: self.sleep,
                 locate: self.locate,
+                nameplate: self.nameplate,
             },
         };
         self.app.emit_all("miner", event)?;
@@ -132,7 +136,7 @@ impl Miner {
                 }
             }
             if !authed {
-                return Err(anyhow::anyhow!("Failed to auth miner"));
+                self.errors.push("Failed to auth miner".to_string());
             }
             Ok(miner)
         } else {
@@ -143,7 +147,6 @@ impl Miner {
     pub async fn load(&mut self) -> Result<()> {
         if let Ok(mut miner) = self.get_miner().await {
             self.model = Some(miner.get_model().await.unwrap_or("Unknown".to_string()));
-            println!("{:?}", miner.get_hashrate().await);
             self.hashrate = Some(miner.get_hashrate().await.unwrap_or(0.0));
             self.temp = miner.get_temperature().await.ok();
             self.fan = miner.get_fan_speed().await.ok();
@@ -151,12 +154,26 @@ impl Miner {
             self.locate = miner.get_blink().await.unwrap_or(false);
             self.pools = miner.get_pools().await.unwrap_or(vec![]);
             self.power = miner.get_power().await.ok();
-            if self.hashrate == Some(0.0) {
-                // Try to get errors up to 3 times
+            self.nameplate = miner.get_nameplate_rate().await.ok();
+            // query errors if we're less than 80% of the nameplate rate
+            // or if we're not hashing at all
+            
+            if self.hashrate.unwrap_or_else(|| unreachable!()) < 0.1 {
                 for _ in 0..3 {
                     if let Ok(errors) = miner.get_errors().await {
                         self.errors = errors;
                         break;
+                    }
+                }
+            } else {
+                if let Some(nameplate) = self.nameplate {
+                    if self.hashrate.unwrap_or(0.0) < nameplate * 0.8 {
+                        for _ in 0..3 {
+                            if let Ok(errors) = miner.get_errors().await {
+                                self.errors = errors;
+                                break;
+                            }
+                        }
                     }
                 }
             }
