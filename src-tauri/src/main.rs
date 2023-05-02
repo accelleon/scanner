@@ -160,6 +160,7 @@ async fn main_async() {
         .connect_timeout(tokio::time::Duration::from_secs(config.connectionTimeout))
         .request_timeout(tokio::time::Duration::from_secs(config.readTimeout))
         .max_connections(config.maxConnections)
+        .cache_token(true)
         .build()
         .unwrap();
 
