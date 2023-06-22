@@ -3,6 +3,19 @@ export type Pool = {
   user: string;
 };
 
+export interface Profile {
+  type: string;
+  name?: string;
+  power?: number;
+  ths?: number;
+  volt?: number;
+  freq?: number;
+  min_freq?: number;
+  max_freq?: number;
+  min_volt?: number;
+  max_volt?: number;
+}
+
 export type Miner = {
   ip: string;
   make?: string;
@@ -17,6 +30,10 @@ export type Miner = {
   sleep?: boolean;
   locate?: boolean;
   power?: number;
+  efficiency?: number;
+  profile?: Profile;
+  profiles?: Profile[];
+  nameplate?: number;
 };
 
 export type Rack = {

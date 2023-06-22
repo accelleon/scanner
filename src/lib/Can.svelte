@@ -11,29 +11,65 @@
   let detected;
   let hashing;
   let hashrate;
+  let sel_model = false;
+  let sel_profile = false;
+
+  function sameModel() {
+    if (selection.length) {
+      let model = selection[0].model;
+      return selection.every((miner) => miner.model == model);
+    }
+    return false;
+  }
+
+  function sameProfile() {
+    if (selection.length && sameModel()) {
+      let profile = selection[0].profile;
+      return selection.every((miner) => miner.profile == profile);
+    }
+    return false;
+  }
 
   function selectNotHashing() {
     selection = miners
       .map((rack) => rack.miners)
       .flat(2)
-      .filter((miner) => !miner.hashrate && miner.make)
-      .map((miner) => miner.ip);
+      .filter((miner) => !miner.hashrate && miner.make);
   }
 
   function selectSleeping() {
     selection = miners
       .map((rack) => rack.miners)
       .flat(2)
-      .filter((miner) => miner.sleep && miner.make)
-      .map((miner) => miner.ip);
+      .filter((miner) => miner.sleep && miner.make);
   }
 
   function selectAll() {
     selection = miners
       .map((rack) => rack.miners)
       .flat(2)
-      .filter((miner) => miner.make)
-      .map((miner) => miner.ip);
+      .filter((miner) => miner.make);
+  }
+
+  function selectModel() {
+    if (sameModel()) {
+      let model = selection[0].model;
+      selection = miners
+        .map((rack) => rack.miners)
+        .flat(2)
+        .filter((miner) => miner.model == model && miner.make);
+    }
+  }
+
+  function selectProfile() {
+    if (sameProfile()) {
+      let model = selection[0].model;
+      let profile = selection[0].profile;
+      selection = miners
+        .map((rack) => rack.miners)
+        .flat(2)
+        .filter((miner) => miner.model == model && miner.make && miner.profile.name == profile.name);
+    }
   }
 
   function format_hashrate(ths) {
@@ -64,6 +100,16 @@
       });
     }
   }
+
+  $: {
+    if (selection.length) {
+      sel_model = sameModel();
+      sel_profile = sameProfile();
+    } else {
+      sel_model = false;
+      sel_profile = false;
+    }
+  }
 </script>
 
 <div style="margin: 0; margin-top: 10px;">
@@ -77,6 +123,8 @@
   </div>
   <div class="footer">
     <div>
+      <button disabled={!sel_model} on:click={selectModel}>Select Model</button>
+      <button disabled={!sel_profile} on:click={selectProfile}>Select Profile</button>
       <button on:click={selectNotHashing}>Select Not Hashing</button>
       <button on:click={selectSleeping}>Select Sleeping</button>
       <button on:click={selectAll}>Select All</button>

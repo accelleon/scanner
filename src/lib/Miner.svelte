@@ -2,7 +2,7 @@
   import type { Miner } from "../types";
   import Check from "svelte-material-icons/Check.svelte";
   import { open } from "@tauri-apps/api/shell";
-  import { round } from "../util";
+  import { round, pretty_profile } from "../util";
 
   export let miner: Miner = undefined;
   export let disabled: Boolean = false;
@@ -19,7 +19,9 @@
 
   function format_worker(worker: string) {
     worker = worker.replace("{can}", can.num);
-    worker = worker.replace("{model}", miner.model.toLowerCase());
+    // special case for vnish firmware, s19-88 becomes s19
+    let model = miner.model.toLowerCase().replace("-88", "");
+    worker = worker.replace("{model}", model);
     // Build an ip suffix
     let ip = miner.ip.split(".");
     let suffix = `${ip[2]}x${ip[3]}`;
@@ -27,16 +29,23 @@
     return worker;
   }
 
+  function check_1pool(p1, p2) {
+    // Do they match excluding the leading stratum+tcp://
+    if (p1.replace("stratum+tcp://", "") == p2.replace("stratum+tcp://", "")) {
+      return true;
+    }
+  }
+
   function check_pool() {
     if (pool && miner.pools && miner.pools.length == 3) {
       let worker = format_worker(pool.username);
-      if (miner.pools[0].url != pool.url1 || miner.pools[0].user != worker) {
+      if (!check_1pool(miner.pools[0].url, pool.url1) || miner.pools[0].user != worker) {
         return false;
       }
-      if (miner.pools[1].url != pool.url2 || miner.pools[1].user != worker) {
+      if (!check_1pool(miner.pools[1].url, pool.url2) || miner.pools[1].user != worker) {
         return false;
       }
-      if (miner.pools[2].url != pool.url3 || miner.pools[2].user != worker) {
+      if (!check_1pool(miner.pools[2].url, pool.url3) || miner.pools[2].user != worker) {
         return false;
       }
     }
@@ -80,11 +89,11 @@
   }
 
   function updateCheckbox(group, value) {
-    selected = group.indexOf(value) > -1;
+    selected = group.findIndex((e) => e.ip == value.ip) > -1;
   }
 
   function updateGroup(checked, value) {
-    const index = group.indexOf(value);
+    const index = group.findIndex((e) => e.ip == value.ip);
     if (checked) {
       if (index === -1) {
         group.push(value);
@@ -106,10 +115,10 @@
       event.preventDefault();
       event.stopPropagation();
       if (group) {
-        updateGroup(!selected, miner.ip);
+        updateGroup(!selected, miner);
       }
     } else {
-      group = [miner.ip];
+      group = [miner];
     }
   }
 
@@ -120,7 +129,7 @@
     open("http://" + miner.ip);
   }
 
-  $: group && updateCheckbox(group, miner.ip);
+  $: group && updateCheckbox(group, miner);
   $: if (miner.pools && pool) update_pool();
   $: color = miner.make ? (miner.sleep ? "black" : (miner.hashrate > 0 ? (miner.errors.length > 0 || (pool && miner.pools && !check_pool()) ? "orange" : "green") : "red")) : "#ddd";
   $: disabled = !miner.make;
@@ -147,13 +156,19 @@
     {#if miner.make}
       <div class="tooltip-header">
         <div class="tooltip-title">{miner.ip}</div>
-        <div class="tooltip-subtitle">{miner.make + " " + miner.model}</div>
+        <div class="tooltip-subtitle">{miner.make + " " + miner.model + " - " + round(miner.nameplate, 0) + "T"}</div>
       </div>
       <div class="tooltip-body">
         <div class="tooltip-row">
           <div class="tooltip-label">MAC</div>
           <div class="tooltip-value">{miner.mac}</div>
         </div>
+        {#if miner.profile}
+          <div class="tooltip-row">
+            <div class="tooltip-label">Profile</div>
+            <div class="tooltip-value">{pretty_profile(miner.profile)}</div>
+          </div>
+        {/if}
         <div class="tooltip-row">
           <div class="tooltip-label">Hashrate</div>
           <div class="tooltip-value">{round(miner.hashrate, 2)} TH/s</div>
@@ -161,6 +176,10 @@
         <div class="tooltip-row">
           <div class="tooltip-label">Power</div>
           <div class="tooltip-value">{round(miner.power, 2)} W</div>
+        </div>
+        <div class="tooltip-row">
+          <div class="tooltip-label">Efficiency</div>
+          <div class="tooltip-value">{round(miner.efficiency, 2)} W/TH</div>
         </div>
         <div class="tooltip-row">
           <div class="tooltip-label">Temp</div>
@@ -215,6 +234,7 @@
     padding: 10px;
     font-size: 1rem;
   }
+
   .tooltip-header {
     display: flex;
     flex-direction: column;

@@ -1,13 +1,13 @@
 <script lang="ts">
   import Controls from "./lib/Controls.svelte";
-  import type { Miner } from "./types";
+  import type { Miner, Profile } from "./types";
   import Can from "./lib/Can.svelte";
   import { modal } from "./stores.js";
   import Modal from "./lib/controls/Modal.svelte";
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import Table from "./lib/controls/Table.svelte";
-  import { round } from "./util";
+  import { pretty_profile, round } from "./util";
   import { invoke } from "@tauri-apps/api/tauri";
   import { settings, pools } from "./stores.js";
   import sync from 'css-animation-sync';
@@ -54,6 +54,11 @@
     {
       name: "MAC Address",
       key: "mac",
+    },
+    {
+      name: "Profile",
+      key: "profile",
+      dispFn: (profile: Profile) => pretty_profile(profile),
     },
     {
       name: "Hashrate",
@@ -118,7 +123,7 @@
     closeOnEsc={false}
     closeOnOuterClick={false}
   />
-  <Controls bind:miners selection={selected_miners} bind:pool bind:selected={can}/>
+  <Controls bind:miners selection={selected_miners} bind:pool bind:selected={can} />
   <Can {miners} {pool} bind:selection={selected_miners} {can}/>
   <Table
     {columns}

@@ -19,6 +19,34 @@
   let sorted = false;
   let display = data;
 
+  function updateGroup(value) {
+    const index = selection.findIndex((e) => e.ip == value.ip);
+    if (index >= 0) {
+      selection.splice(index, 1);
+    } else {
+      selection.push(value);
+    }
+    selection = selection;
+  }
+
+  function onClick(event, miner) {
+    if (event.ctrlKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (selection) {
+        updateGroup(miner);
+      } else {
+        selection = [miner];
+      }
+    } else {
+      selection = [miner];
+    }
+  }
+
+  function onDblClick(event, miner) {
+    open("http://" + miner.ip);
+  }
+
   function sortClick(key: string) {
     if (!columns.find((col) => col.key === key).sortable) return;
     if (sortBy.key === key) {
@@ -86,6 +114,8 @@
             class={selection.findIndex((e) => e[unique] === row[unique]) !== -1
               ? "selected"
               : ""}
+            on:click={(e) => onClick(e, row)}
+            on:dblclick={(e) => onDblClick(e, row)}
           >
             {#each columns as column}
               <td>

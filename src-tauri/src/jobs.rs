@@ -20,6 +20,7 @@ mod pool;
 mod sleep;
 mod miner;
 mod logs;
+mod profile;
 pub use miner::Miner;
 
 #[derive(Serialize, Debug, Clone)]
@@ -78,6 +79,7 @@ pub enum Job {
     Pool(pool::PoolJob),
     Sleep(sleep::SleepJob),
     Log(logs::LogJob),
+    Profile(profile::ProfileJob),
 }
 
 impl Deref for Job {
@@ -91,6 +93,7 @@ impl Deref for Job {
             Job::Pool(job) => job,
             Job::Sleep(job) => job,
             Job::Log(job) => job,
+            Job::Profile(job) => job,
         }
     }
 }
@@ -117,7 +120,7 @@ impl JobRunner {
     }
 
     pub async fn run(self) -> Result<()> {
-        self.progress.lock().await.emit();
+        let _ = self.progress.lock().await.emit();
         let mut futures = vec![];
         for task in self.tasks {
             let progress = self.progress.clone();

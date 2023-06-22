@@ -9,7 +9,7 @@
   export let can: any = undefined;
 
   function selectAll(e: any) {
-    let new_selection = rack.miners.flat(2).filter((miner) => miner.make).map((miner) => miner.ip);
+    let new_selection = rack.miners.flat(2).filter((miner) => miner.make);
     // if ctrl is held we want to add/remove
     // otherwise toggle it
     if (e.ctrlKey) {

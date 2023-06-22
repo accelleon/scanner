@@ -3,7 +3,7 @@ use sqlx::sqlite::SqlitePool;
 use anyhow::Result;
 
 use crate::models::{MinerEvent, self};
-use libminer::Client;
+use libminer::{Client, Profile};
 use crate::db;
 
 pub struct Miner {
@@ -19,6 +19,9 @@ pub struct Miner {
     pub pools: Vec<libminer::Pool>,
     pub nameplate: Option<f64>,
     pub power: Option<f64>,
+    pub efficiency: Option<f64>,
+    pub profile: Option<Profile>,
+    pub profiles: Option<Vec<Profile>>,
     pub sleep: bool,
     pub locate: bool,
     pub client: Client,
@@ -53,6 +56,9 @@ impl Miner {
             errors: Vec::new(),
             pools: Vec::new(),
             power: None,
+            efficiency: None,
+            profile: None,
+            profiles: None,
             sleep: false,
             locate: false,
             nameplate: None,
@@ -84,6 +90,9 @@ impl Miner {
             errors: Vec::new(),
             pools: Vec::new(),
             power: None,
+            efficiency: None,
+            profile: None,
+            profiles: None,
             sleep: false,
             locate: false,
             nameplate: None,
@@ -110,10 +119,13 @@ impl Miner {
                 hashrate: self.hashrate,
                 temp: self.temp,
                 power: self.power,
+                efficiency: self.efficiency,
                 fan: self.fan.clone(),
                 uptime: self.uptime,
                 errors: self.errors.clone(),
                 pools: self.pools.clone(),
+                profile: self.profile.clone().map(|x| x.into()),
+                profiles: self.profiles.clone().map(|x| x.into_iter().map(|x| x.into()).collect()),
                 sleep: self.sleep,
                 locate: self.locate,
                 nameplate: self.nameplate,
@@ -155,28 +167,21 @@ impl Miner {
             self.pools = miner.get_pools().await.unwrap_or(vec![]);
             self.power = miner.get_power().await.ok();
             self.nameplate = miner.get_nameplate_rate().await.ok();
+            self.efficiency = miner.get_efficiency().await.ok();
+            self.profile = miner.get_profile().await.ok();
+            self.profiles = miner.get_profiles().await.ok();
             // query errors if we're less than 80% of the nameplate rate
             // or if we're not hashing at all
             
-            if self.hashrate.unwrap_or_else(|| unreachable!()) < 0.1 {
+            if self.hashrate.unwrap_or_else(|| unreachable!()) < 70.0 {
                 for _ in 0..3 {
-                    if let Ok(errors) = miner.get_errors().await {
+                    if let Ok(errors) = miner.get_errors().await.map(|r| r.into_iter().map(|e| e.msg).collect::<Vec<String>>()) {
                         self.errors = errors;
                         break;
                     }
                 }
-            } else {
-                if let Some(nameplate) = self.nameplate {
-                    if self.hashrate.unwrap_or(0.0) < nameplate * 0.8 {
-                        for _ in 0..3 {
-                            if let Ok(errors) = miner.get_errors().await {
-                                self.errors = errors;
-                                break;
-                            }
-                        }
-                    }
-                }
             }
+
             if !self.pools.is_empty() && self.pools[0].url.is_empty() {
                 self.errors.push("No pool set".to_string());
             } else if self.pools.is_empty() {
@@ -206,11 +211,16 @@ impl Miner {
     pub async fn set_pool(mut self, pools: db::Pool) -> Result<()> {
         let mut miner = self.get_miner().await?;
         let mut worker = pools.username.clone();
+        let mut model = miner.get_model().await?.to_lowercase();
+        // Special case for Vnish, s19-88 becomes s19
+        if model.contains("-") {
+            model = model.split("-").collect::<Vec<&str>>()[0].to_string();
+        }
         if worker.contains("{can}") {
             worker = worker.replace("{can}", self.can.to_string().as_str());
         }
         if worker.contains("{model}") {
-            worker = worker.replace("{model}", &miner.get_model().await?.to_lowercase());
+            worker = worker.replace("{model}", &model);
         }
         if worker.contains("{ip}") {
             // Take the last 2 octets of the IP address
@@ -260,4 +270,9 @@ impl Miner {
         Ok(self.scan().await?)
     }
 
+    pub async fn set_profile(mut self, profile: Profile) -> Result<()> {
+        let mut miner = self.get_miner().await?;
+        miner.set_profile(profile.into()).await?;
+        Ok(self.scan().await?)
+    }
 }

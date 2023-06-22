@@ -8,11 +8,13 @@
   import { listen } from "@tauri-apps/api/event";
   import { settings } from "../stores.js";
   import { open, save } from "@tauri-apps/api/dialog";
-  import type { Miner, Rack } from '../types';
+  import type { Miner, Rack, Profile } from '../types';
   import { writeTextFile } from '@tauri-apps/api/fs';
   import PoolsDialog from "./controls/PoolsDialog.svelte";
   import { pools } from "../stores.js";
   import Validation from "./controls/Validation.svelte";
+  import { pretty_profile } from "../util";
+  import RangeSlider from "./controls/RangeSlider.svelte";
 
   export let miners: any = undefined;
   export let selection: any[];
@@ -24,6 +26,9 @@
   let working = false;
   let progress;
   let monitor;
+  let prof_err;
+  let profiles: Profile[] = [];
+  let profile: Profile;
 
   var setIntervalSynchronous = function (func, delay) {
     var intervalFunction, timeoutId, clear, cancel;
@@ -90,7 +95,7 @@
     console.log("runJob", job, args);
     if (!working) {
       working = true;
-      await invoke("run_job", { job: { job: job, ips: selection, ...args }}).finally(() => {
+      await invoke("run_job", { job: { job: job, ips: selection.map((m) => m.ip), ...args }}).finally(() => {
         working = false;
       });
     } else {
@@ -114,13 +119,36 @@
     save({
       filters: [{name: "csv", extensions: ["csv"]}],
     }).then((path) => {
-      const headers = ["IP", "Rack", "Shelf", "Slot", "Make", "Model", "CF_MAC Address", "Worker", "Pool1", "Pool2", "Pool3"].join(",");
-      const contents = miners.flatMap((r: Rack, i: number) => {
+      const headers = ["IP", "Rack", "Shelf", "Slot", "Make", "Model", "Hashrate", "Errors", "CF_MAC Address", "Worker", "Pool1", "Pool2", "Pool3"].join(",");
+      var contents = miners.flatMap((r: Rack, i: number) => {
         return r.miners.flatMap((row: Miner[], y: number) => {
           return row.map((m: Miner, x: number) => {
             return m.make ? 
-              `${m.ip},${i+1},${y+1},${(y*4)+x+1},${m.make},${m.model},${m.mac ? m.mac.toLowerCase() : ""},${m.pools[0].user},${m.pools[0].url},${m.pools[1].url},${m.pools[2].url}`
+              `${m.ip},${i+1},${y+1},${(y*4)+x+1},${m.make},${m.model},${m.hashrate},${m.nameplate},${m.errors ? m.errors.join("; ") : ""},${m.mac ? m.mac.toLowerCase() : ""},${m.pools[0].user},${m.pools[0].url},${m.pools[1].url},${m.pools[2].url}`
               : `${m.ip},${i+1},${y+1},${(y*4)+x+1},,,,,,,`;
+          });
+        });
+      });
+      contents = contents.filter((c) => c != "")
+      const outfile = [headers, ...contents].join("\n");
+      writeTextFile({
+        contents: outfile,
+        path: path,
+      });
+    });
+  }
+
+  async function exportMiners2() {
+    save({
+      filters: [{name: "csv", extensions: ["csv"]}],
+    }).then((path) => {
+      const headers = ["IP", "MAC", "Make", "Model", "Hashrate", "Errors"].join(",");
+      const contents = miners.flatMap((r: Rack, i: number) => {
+        return r.miners.flatMap((row: Miner[], y: number) => {
+          return row.map((m: Miner, x: number) => {
+            if (m.make) {
+              return `${m.ip},${m.mac ? m.mac.toLowerCase() : ""},${m.make},${m.model},${m.hashrate},${m.errors ? m.errors.join("; ") : ""}`;
+            }
           });
         });
       });
@@ -142,12 +170,41 @@
 
   $: if (selected != scanned) {
     scanned = false;
+    profiles = [];
+    profile = undefined;
+    selection = [];
     invoke("gen_empty_can", { can: selected.id }).then((resp: any) => {
       miners = resp.racks;
     });
   }
 
   $: control_disabled = monitor || working || selection.length == 0;
+
+  $: {
+    // prof_err = undefined;
+    // if selection.length && profiles.length == 0 not supported
+    // if miners have mixed models not supported
+
+    if (selection.length > 0) {
+      profiles = selection[0].profiles || [];
+      if (profiles.length == 0) {
+        prof_err = "No profiles available";
+      } else if (selection.find((m: Miner) => m.model != selection[0].model)) {
+        prof_err = "Miners have mixed models";
+      } else {
+        prof_err = undefined;
+      }
+    } else {
+      profiles = [];
+      profile = undefined;
+      prof_err = undefined;
+    }
+
+  }
+
+  $: {
+    console.log(profile);
+  }
 </script>
 
 {#if progress}
@@ -202,8 +259,27 @@
       <hr />
       <div class="col">
         <button disabled={monitor || working || !scanned} on:click={() => validationDialog()}>Location Validation</button>
-        <button disabled={working || !scanned} on:click={() => exportMiners()}>Export Miners</button>
+        <button disabled={working || !scanned} on:click={() => exportMiners2()}>Export Miners</button>
         <button disabled={control_disabled} on:click={() => exportLogs()}>Export Logs</button>
+      </div>
+    </div>
+    <div>
+      <h3>Profiles</h3>
+      <hr />
+      <div class="control-group">
+        <div class="col">
+          <Dropdown bind:selected={profile} options={profiles} selObject={true} labelfn={(e) => pretty_profile(e)} class="dropdown" />
+          <button disabled={control_disabled || !profile || prof_err} on:click={() => runJob("Profile", {"profile": profile})}>Update Selected</button>
+          {#if prof_err}
+            <p style="color: red;">{prof_err}</p>
+          {/if}
+        </div>
+        <div class="col">
+          Voltage
+          <RangeSlider values={[profile?.volt || 0]} min={profile?.min_volt || 0} max={profile?.max_volt || 0} step={5} formatter={(v,_i,_p) => v/100} all='label' float={true} on:change={(e) => profile.volt = e.detail.value} disabled={!profile || profile.type!="Manual"}/>
+          Frequency
+          <RangeSlider values={[profile?.freq || 0]} min={profile?.min_freq || 0} max={profile?.max_freq || 0} step={5} all='label' float={true} on:change={(e) => profile.freq = e.detail.value} disabled={!profile || profile.type!="Manual"}/>
+        </div>
       </div>
     </div>
   </div>
@@ -257,7 +333,7 @@
 
   .control {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 2fr;
     height: fit-content;
   }
 

@@ -11,7 +11,6 @@ use tokio::io::AsyncWriteExt;
 
 use crate::db;
 use super::JobDef;
-use super::Miner;
 
 async fn log(ip: String, client: Client, auths: db::MinerAuth, folder: String) -> Result<()> {
     if let Ok(mut miner) = client.get_miner(&ip, None).await {
@@ -52,7 +51,7 @@ impl JobDef for LogJob {
     async fn prepare(
         &self,
         db: &SqlitePool,
-        app: AppHandle,
+        _app: AppHandle,
         client: Client,
     ) -> Result<Vec<Pin<Box<dyn Future<Output = Result<()>> + Send>>>> {
         let auths = db::MinerAuth::load(db).await?;
