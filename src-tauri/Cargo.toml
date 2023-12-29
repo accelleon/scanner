@@ -22,10 +22,11 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 async-trait = "0.1"
 
-libminer = { path = "../../libminer", features = ["all", "vendored-openssl"] }
+libminer = { git="https://github.com/stronghold-digital/libminer", features = ["all"] }
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "macros", "sqlite", "offline"] }
 csv = { version = "1" }
 anyhow = "1.0"
+phf = { version = "0.8", features = ["macros"] }
 
 [features]
 # by default Tauri runs in production mode

@@ -60,6 +60,7 @@ dependencies = [
  "async-trait",
  "csv",
  "libminer",
+ "phf 0.8.0",
  "serde",
  "serde_json",
  "sqlx",
@@ -1767,6 +1768,7 @@ dependencies = [
 [[package]]
 name = "libminer"
 version = "0.1.0"
+source = "git+https://github.com/stronghold-digital/libminer#f52b23eca2fdaaae254b0255561d423173ca011b"
 dependencies = [
  "async-trait",
  "base64 0.13.1",
@@ -1775,7 +1777,7 @@ dependencies = [
  "lazy-regex",
  "md-5",
  "openssl",
- "phf 0.11.1",
+ "phf 0.10.1",
  "reqwest",
  "scraper",
  "serde",
@@ -2243,9 +2245,9 @@ checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "openssl-src"
-version = "111.24.0+1.1.1s"
+version = "111.25.0+1.1.1t"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3498f259dab01178c6228c6b00dcef0ed2a2d5e20d648c017861227773ea4abd"
+checksum = "3173cd3626c43e3854b1b727422a276e568d9ec5fe8cec197822cf52cfb743d6"
 dependencies = [
  "cc",
 ]
@@ -2415,16 +2417,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phf"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "928c6535de93548188ef63bb7c4036bd415cd8f36ad25af44b9789b2ee72a48c"
-dependencies = [
- "phf_macros 0.11.1",
- "phf_shared 0.11.1",
-]
-
-[[package]]
 name = "phf_codegen"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2465,16 +2457,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phf_generator"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1181c94580fa345f50f19d738aaa39c0ed30a600d95cb2d3e23f94266f14fbf"
-dependencies = [
- "phf_shared 0.11.1",
- "rand 0.8.5",
-]
-
-[[package]]
 name = "phf_macros"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2503,19 +2485,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phf_macros"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92aacdc5f16768709a569e913f7451034034178b05bdc8acda226659a3dccc66"
-dependencies = [
- "phf_generator 0.11.1",
- "phf_shared 0.11.1",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "phf_shared"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2529,15 +2498,6 @@ name = "phf_shared"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6796ad771acdc0123d2a88dc428b5e38ef24456743ddb1744ed628f9815c096"
-dependencies = [
- "siphasher",
-]
-
-[[package]]
-name = "phf_shared"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1fb5f6f826b772a8d4c0394209441e7d37cbbb967ae9c7e0e8134365c9ee676"
 dependencies = [
  "siphasher",
 ]

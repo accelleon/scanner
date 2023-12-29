@@ -20,6 +20,7 @@ export type Miner = {
   ip: string;
   make?: string;
   model?: string;
+  submodel?: string;
   mac?: string;
   hashrate?: number;
   temp?: number;
@@ -33,6 +34,7 @@ export type Miner = {
   efficiency?: number;
   profile?: Profile;
   profiles?: Profile[];
+  hashboard?: string;
   nameplate?: number;
 };
 

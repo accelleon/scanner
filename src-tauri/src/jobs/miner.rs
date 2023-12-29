@@ -6,6 +6,27 @@ use crate::models::{MinerEvent, self};
 use libminer::{Client, Profile};
 use crate::db;
 
+pub static HASH_MAP: phf::Map<&'static str, &'static str> = phf::phf_map! {
+    // T19
+    "NBT1903" => "240-Ca",
+
+    // S19
+    "NBS1902" => "240-Ca",
+    "BHB42801" => "240-Ch",
+    "BHB42831" => "240-Ch",
+
+    // S19a
+    "BHB28611" => "240-Ce",
+
+    // S19 Pro
+    "BHB42601" => "240-C",
+    "BHB42651" => "j1-11",
+
+    // S19j Pro
+    "BHB42603" => "240-Cb",
+    "BHB42631" => "j1-11",
+};
+
 pub struct Miner {
     pub ip: String,
     pub make: Option<String>,
@@ -22,6 +43,7 @@ pub struct Miner {
     pub efficiency: Option<f64>,
     pub profile: Option<Profile>,
     pub profiles: Option<Vec<Profile>>,
+    pub hashboard: Option<String>,
     pub sleep: bool,
     pub locate: bool,
     pub client: Client,
@@ -59,6 +81,7 @@ impl Miner {
             efficiency: None,
             profile: None,
             profiles: None,
+            hashboard: None,
             sleep: false,
             locate: false,
             nameplate: None,
@@ -93,6 +116,7 @@ impl Miner {
             efficiency: None,
             profile: None,
             profiles: None,
+            hashboard: None,
             sleep: false,
             locate: false,
             nameplate: None,
@@ -115,6 +139,7 @@ impl Miner {
                 ip: self.ip.clone(),
                 make: self.make.clone(),
                 model: self.model.clone(),
+                submodel: self.hashboard.clone().map(|x| HASH_MAP.get(x.as_str()).map(|s| s.to_string())).unwrap_or(None),
                 mac: self.mac.clone(),
                 hashrate: self.hashrate,
                 temp: self.temp,
@@ -126,6 +151,7 @@ impl Miner {
                 pools: self.pools.clone(),
                 profile: self.profile.clone().map(|x| x.into()),
                 profiles: self.profiles.clone().map(|x| x.into_iter().map(|x| x.into()).collect()),
+                hashboard: self.hashboard.clone(),
                 sleep: self.sleep,
                 locate: self.locate,
                 nameplate: self.nameplate,
@@ -170,6 +196,7 @@ impl Miner {
             self.efficiency = miner.get_efficiency().await.ok();
             self.profile = miner.get_profile().await.ok();
             self.profiles = miner.get_profiles().await.ok();
+            self.hashboard = miner.get_hashboard().await.ok();
             // query errors if we're less than 80% of the nameplate rate
             // or if we're not hashing at all
             

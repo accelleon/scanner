@@ -156,7 +156,7 @@
     {#if miner.make}
       <div class="tooltip-header">
         <div class="tooltip-title">{miner.ip}</div>
-        <div class="tooltip-subtitle">{miner.make + " " + miner.model + " - " + round(miner.nameplate, 0) + "T"}</div>
+        <div class="tooltip-subtitle">{miner.make} {miner.model} {miner.submodel ? miner.submodel + " " : ""} - {round(miner.nameplate, 0)}T</div>
       </div>
       <div class="tooltip-body">
         <div class="tooltip-row">
@@ -191,6 +191,14 @@
             {miner.fan ? miner.fan.join(",") : "Unknown"}
           </div>
         </div>
+        {#if miner.hashboard}
+          <div class="tooltip-row">
+            <div class="tooltip-label">Hashboard</div>
+            <div class="tooltip-value">
+              {miner.hashboard}
+            </div>
+          </div>
+        {/if}
       </div>
       {#if miner.errors}
         <div class="tooltip-footer">

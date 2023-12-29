@@ -52,6 +52,16 @@
       sortable: true,
     },
     {
+      name: "Submodel",
+      key: "submodel",
+      sortable: true,
+    },
+    {
+      name: "Hashboard",
+      key: "hashboard",
+      sortable: true,
+    },
+    {
       name: "MAC Address",
       key: "mac",
     },
