@@ -154,6 +154,14 @@
   tr {
     padding: 0;
   }
+  tbody > tr {
+    -webkit-touch-callout:text; /* iOS Safari */
+    -webkit-user-select:text;   /* Chrome/Safari/Opera */
+    -khtml-user-select:text;    /* Konqueror */
+    -moz-user-select:text;      /* Firefox */
+    -ms-user-select:text;       /* Internet Explorer/Edge */
+    user-select:text;           /* Non-prefixed version */
+  }
   tbody > tr:hover {
     background-color: darkgrey;
   }
