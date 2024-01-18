@@ -57,6 +57,10 @@ button:disabled:hover {
   pointer-events: none;
 }
 
+svg {
+  pointer-events: none;
+}
+
 @keyframes blink {
   0%, 49% { 
     background-color: var(--bgcolor);
