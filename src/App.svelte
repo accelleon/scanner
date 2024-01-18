@@ -64,6 +64,7 @@
     {
       name: "MAC Address",
       key: "mac",
+      dispFn: (mac: string) => mac.toLowerCase(),
     },
     {
       name: "Profile",
