@@ -2223,7 +2223,7 @@ dependencies = [
 [[package]]
 name = "libminer"
 version = "0.1.0"
-source = "git+https://github.com/stronghold-digital/libminer#0b0febbcbfea80f4e452feccea65c4603b32306c"
+source = "git+https://github.com/stronghold-digital/libminer#74a06cc6ee1b9f09b18b2d1cea71255bd247679c"
 dependencies = [
  "async-trait",
  "base64 0.13.1",
